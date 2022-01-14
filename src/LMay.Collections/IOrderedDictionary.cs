@@ -1,6 +1,6 @@
 ﻿namespace LMay.Collections
 {
-    public interface IOrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IList<KeyValuePair<TKey, TValue>>
+    public interface IOrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, IList<KeyValuePair<TKey, TValue>>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>
         where TKey : notnull
     {
         IEqualityComparer<TKey> Comparer { get; }

@@ -45,6 +45,10 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
     public ICollection<TValue> Values => new OrderedDictionaryValueCollection(list);
 
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
     public KeyValuePair<TKey, TValue> this[int index]
     {
         get => list[index];
