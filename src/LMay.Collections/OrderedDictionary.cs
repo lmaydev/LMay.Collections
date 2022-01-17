@@ -37,12 +37,9 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
     }
 
     public IEqualityComparer<TKey> Comparer => dictionary.Comparer;
-
     public int Count => list.Count;
-
     public bool IsReadOnly => false;
     public ICollection<TKey> Keys => new OrderedDictionaryKeyCollection(list, dictionary);
-
     public ICollection<TValue> Values => new OrderedDictionaryValueCollection(list);
 
     IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
@@ -104,7 +101,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
     public int IndexOfKey(TKey key)
     {
-        var comparer = dictionary.Comparer;
+        var comparer = Comparer;
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -121,12 +118,22 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
     public void Insert(int index, KeyValuePair<TKey, TValue> item)
     {
-        dictionary.Add(item.Key, item.Value);
+        if (ContainsKey(item.Key))
+        {
+            throw new ArgumentException($"An item with the same key has already been added. Key: {item.Key}");
+        }
+
         list.Insert(index, item);
+        dictionary.Add(item.Key, item.Value);
     }
 
     public bool Remove(TKey key)
     {
+        if (!ContainsKey(key))
+        {
+            return false;
+        }
+
         var index = IndexOfKey(key);
 
         if (index == -1)
@@ -154,8 +161,8 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
     {
         var item = list[index];
 
-        dictionary.Remove(item.Key);
         list.RemoveAt(index);
+        dictionary.Remove(item.Key);
     }
 
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => dictionary.TryGetValue(key, out value);
@@ -185,6 +192,16 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
         public void CopyTo(TKey[] array, int arrayIndex)
         {
+            if (arrayIndex < 0 || arrayIndex >= array.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index was out of range. Must be non-negative and less than the size of the collection.");
+            }
+
+            if (arrayIndex + Count >= array.Length)
+            {
+                throw new ArgumentException("Destination array was not long enough. Check the destination index, length, and the array's lower bounds.", nameof(array));
+            }
+
             for (int i = 0; i < list.Count; i++)
             {
                 array[arrayIndex + i] = list[i].Key;
@@ -199,43 +216,22 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
         private struct OrderedDictionaryKeyEnumerator : IEnumerator<TKey>
         {
-            private readonly List<KeyValuePair<TKey, TValue>> list;
-            private int index = -1;
-#nullable disable warnings // Accessing current before calling MoveNext or after MoveNext returns false is undefined. So we need to use default.
+            private readonly IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
 
             public OrderedDictionaryKeyEnumerator(List<KeyValuePair<TKey, TValue>> list)
             {
-                this.list = list;
+                enumerator = list.GetEnumerator();
             }
 
-            public TKey Current { get; private set; } = default;
+            public TKey Current { get => enumerator.Current.Key; }
 
             object IEnumerator.Current => Current;
 
-            public void Dispose()
-            {
-            }
+            public void Dispose() => enumerator.Dispose();
 
-            public bool MoveNext()
-            {
-                index++;
+            public bool MoveNext() => enumerator.MoveNext();
 
-                if (index == list.Count)
-                {
-                    Current = default;
-                    return false;
-                }
-
-                Current = list[index].Key;
-                return true;
-            }
-
-            public void Reset()
-            {
-                index = -1;
-            }
-
-#nullable enable warnings
+            public void Reset() => enumerator.Reset();
         }
     }
 
@@ -271,6 +267,16 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
         public void CopyTo(TValue[] array, int arrayIndex)
         {
+            if (arrayIndex < 0 || arrayIndex >= array.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index was out of range. Must be non-negative and less than the size of the collection.");
+            }
+
+            if (arrayIndex + Count >= array.Length)
+            {
+                throw new ArgumentException("Destination array was not long enough. Check the destination index, length, and the array's lower bounds.", nameof(array));
+            }
+
             for (int i = 0; i < list.Count; i++)
             {
                 array[arrayIndex + i] = list[i].Value;
@@ -285,44 +291,27 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
         private struct OrderedDictionaryValueEnumerator : IEnumerator<TValue>
         {
-            private readonly List<KeyValuePair<TKey, TValue>> list;
-            private int index = -1;
-#nullable disable warnings // Accessing current before calling MoveNext or after MoveNext returns false is undefined. So we need to use default.
+            private readonly IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
 
             public OrderedDictionaryValueEnumerator(List<KeyValuePair<TKey, TValue>> list)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
             {
-                this.list = list;
+                enumerator = list.GetEnumerator();
             }
 
-            public TValue Current { get; private set; } = default;
+            public TValue Current { get => enumerator.Current.Value; }
 
+#pragma warning disable CS8603 // Possible null reference return.
+
+            // Accessing Current before MoveNext or after MoveNext returns false is undefined so default must be allowable here
             object IEnumerator.Current => Current;
 
-            public void Dispose()
-            {
-            }
+#pragma warning restore CS8603 // Possible null reference return.
 
-            public bool MoveNext()
-            {
-                index++;
+            public void Dispose() => enumerator.Dispose();
 
-                if (index == list.Count)
-                {
-                    Current = default;
-                    return false;
-                }
+            public bool MoveNext() => enumerator.MoveNext();
 
-                Current = list[index].Value;
-                return true;
-            }
-
-            public void Reset()
-            {
-                index = -1;
-            }
-
-#nullable enable warnings
+            public void Reset() => enumerator.Reset();
         }
     }
 }
