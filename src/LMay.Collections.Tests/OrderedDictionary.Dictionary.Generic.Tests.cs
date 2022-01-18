@@ -4,9 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Tests;
-using System.Globalization;
 using System.Linq;
-using System.Runtime.Serialization;
 using Xunit;
 
 namespace LMay.Collections.Tests
@@ -23,9 +21,29 @@ namespace LMay.Collections.Tests
 
         protected override Type ICollection_Generic_CopyTo_IndexLargerThanArrayCount_ThrowType => typeof(ArgumentException);
 
-        protected override IDictionary<TKey, TValue> GenericIDictionaryFactory() => new OrderedDictionary<TKey, TValue>();
+        protected override IDictionary<TKey, TValue> GenericIDictionaryFactory() => IOrderedDictionaryFactory();
 
-        protected override IDictionary<TKey, TValue> GenericIDictionaryFactory(IEqualityComparer<TKey> comparer) => new OrderedDictionary<TKey, TValue>(comparer);
+        protected override IDictionary<TKey, TValue> GenericIDictionaryFactory(IEqualityComparer<TKey> comparer)
+            => IOrderedDictionaryFactory(comparer);
+
+        protected virtual IOrderedDictionary<TKey, TValue> IOrderedDictionaryFactory(int count)
+        {
+            var list = new List<KeyValuePair<TKey, TValue>>();
+
+            for (int i = 0; i < count; i++)
+            {
+                var seed = count + i;
+
+                list.Add(CreateT(seed));
+            }
+
+            return new OrderedDictionary<TKey, TValue>(list);
+        }
+
+        protected virtual IOrderedDictionary<TKey, TValue> IOrderedDictionaryFactory() => new OrderedDictionary<TKey, TValue>();
+
+        protected virtual IOrderedDictionary<TKey, TValue> IOrderedDictionaryFactory(IEqualityComparer<TKey> comparer)
+            => new OrderedDictionary<TKey, TValue>(comparer);
 
         #endregion IDictionary<TKey, TValue Helper Methods
 
@@ -36,7 +54,7 @@ namespace LMay.Collections.Tests
         public void Dictionary_Generic_Constructor_IDictionary(int count)
         {
             IDictionary<TKey, TValue> source = GenericIDictionaryFactory(count);
-            IDictionary<TKey, TValue> copied = new Dictionary<TKey, TValue>(source);
+            IDictionary<TKey, TValue> copied = new OrderedDictionary<TKey, TValue>(source);
             Assert.Equal(source, copied);
         }
 
@@ -46,7 +64,7 @@ namespace LMay.Collections.Tests
         {
             IEqualityComparer<TKey> comparer = GetKeyIEqualityComparer();
             IDictionary<TKey, TValue> source = GenericIDictionaryFactory(count);
-            Dictionary<TKey, TValue> copied = new Dictionary<TKey, TValue>(source, comparer);
+            IOrderedDictionary<TKey, TValue> copied = new OrderedDictionary<TKey, TValue>(source, comparer);
             Assert.Equal(source, copied);
             Assert.Equal(comparer, copied.Comparer);
         }
@@ -57,7 +75,7 @@ namespace LMay.Collections.Tests
         {
             IEqualityComparer<TKey> comparer = GetKeyIEqualityComparer();
             IDictionary<TKey, TValue> source = GenericIDictionaryFactory(count);
-            Dictionary<TKey, TValue> copied = new Dictionary<TKey, TValue>(source, comparer);
+            IOrderedDictionary<TKey, TValue> copied = new OrderedDictionary<TKey, TValue>(source, comparer);
             Assert.Equal(source, copied);
             Assert.Equal(comparer, copied.Comparer);
         }
@@ -66,7 +84,7 @@ namespace LMay.Collections.Tests
         [MemberData(nameof(ValidCollectionSizes))]
         public void Dictionary_Generic_Constructor_int(int count)
         {
-            IDictionary<TKey, TValue> dictionary = new Dictionary<TKey, TValue>(count);
+            IDictionary<TKey, TValue> dictionary = new OrderedDictionary<TKey, TValue>(count);
             Assert.Equal(0, dictionary.Count);
         }
 
@@ -75,36 +93,23 @@ namespace LMay.Collections.Tests
         public void Dictionary_Generic_Constructor_int_IEqualityComparer(int count)
         {
             IEqualityComparer<TKey> comparer = GetKeyIEqualityComparer();
-            Dictionary<TKey, TValue> dictionary = new Dictionary<TKey, TValue>(count, comparer);
+            IOrderedDictionary<TKey, TValue> dictionary = new OrderedDictionary<TKey, TValue>(count, comparer);
             Assert.Empty(dictionary);
             Assert.Equal(comparer, dictionary.Comparer);
         }
 
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void OrderedDictionary_Generic_Constructor_IEqualityComparer(int count)
+        {
+            IEqualityComparer<TKey> comparer = GetKeyIEqualityComparer();
+
+            IOrderedDictionary<TKey, TValue> dictionary = new OrderedDictionary<TKey, TValue>(comparer);
+
+            Assert.Equal(comparer, dictionary.Comparer);
+        }
+
         #endregion Constructors
-
-        #region IReadOnlyDictionary<TKey, TValue>.Keys
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IReadOnlyDictionary_Generic_Keys_ContainsAllCorrectKeys(int count)
-        {
-            IDictionary<TKey, TValue> dictionary = GenericIDictionaryFactory(count);
-            IEnumerable<TKey> expected = dictionary.Select((pair) => pair.Key);
-            IEnumerable<TKey> keys = ((IReadOnlyDictionary<TKey, TValue>)dictionary).Keys;
-            Assert.True(expected.SequenceEqual(keys));
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IReadOnlyDictionary_Generic_Values_ContainsAllCorrectValues(int count)
-        {
-            IDictionary<TKey, TValue> dictionary = GenericIDictionaryFactory(count);
-            IEnumerable<TValue> expected = dictionary.Select((pair) => pair.Value);
-            IEnumerable<TValue> values = ((IReadOnlyDictionary<TKey, TValue>)dictionary).Values;
-            Assert.True(expected.SequenceEqual(values));
-        }
-
-        #endregion IReadOnlyDictionary<TKey, TValue>.Keys
 
         #region Remove(TKey)
 
@@ -178,38 +183,104 @@ namespace LMay.Collections.Tests
 
         #endregion Remove(TKey)
 
-        #region Non-randomized comparers
+        #region IndexOfKey
 
-        [Fact]
-        public void Dictionary_Comparer_NonRandomizedStringComparers()
+        [Theory, MemberData(nameof(ValidCollectionSizesAndIndex))]
+        public void IOrderedDictionary_IndexOfKey(int count, int index)
         {
-            RunTest(null);
-            RunTest(EqualityComparer<string>.Default);
-            RunTest(StringComparer.Ordinal);
-            RunTest(StringComparer.OrdinalIgnoreCase);
-            RunTest(StringComparer.InvariantCulture);
-            RunTest(StringComparer.InvariantCultureIgnoreCase);
-            RunTest(StringComparer.Create(CultureInfo.InvariantCulture, ignoreCase: false));
-            RunTest(StringComparer.Create(CultureInfo.InvariantCulture, ignoreCase: true));
+            IOrderedDictionary<TKey, TValue> dictionary = IOrderedDictionaryFactory(count);
 
-            void RunTest(IEqualityComparer<string> comparer)
-            {
-                // First, instantiate the dictionary and check its Comparer property
+            var key = dictionary.Keys.Skip(index).First();
 
-                Dictionary<string, object> dict = new Dictionary<string, object>(comparer);
-                object expected = comparer ?? EqualityComparer<string>.Default;
+            var actual = dictionary.IndexOfKey(key);
 
-                Assert.Same(expected, dict.Comparer);
-
-                // Then pretend to serialize the dictionary and check the stored Comparer instance
-
-                SerializationInfo si = new SerializationInfo(typeof(Dictionary<string, object>), new FormatterConverter());
-                dict.GetObjectData(si, new StreamingContext(StreamingContextStates.All));
-
-                Assert.Same(expected, si.GetValue("Comparer", typeof(IEqualityComparer<string>)));
-            }
+            Assert.Equal(index, actual);
         }
 
-        #endregion Non-randomized comparers
+        [Theory, MemberData(nameof(ValidPositiveCollectionSizes))]
+        public void IOrderedDictionary_IndexOfKey_Invalid(int count)
+        {
+            IOrderedDictionary<TKey, TValue> dictionary = IOrderedDictionaryFactory(count);
+
+            var key = GetNewKey(dictionary);
+
+            var actual = dictionary.IndexOfKey(key);
+
+            Assert.Equal(-1, actual);
+        }
+
+        #endregion IndexOfKey
+
+        #region Insert Key/Value
+
+        [Theory, MemberData(nameof(ValidCollectionSizesAndIndex))]
+        public void IOrderedDictionary_Insert_Key_Value(int count, int index)
+        {
+            IOrderedDictionary<TKey, TValue> dictionary = IOrderedDictionaryFactory(count);
+
+            var key = GetNewKey(dictionary);
+
+            var value = CreateTValue(count);
+
+            dictionary.Insert(index, key, value);
+
+            var item = dictionary[index];
+
+            Assert.Equal(key, item.Key);
+            Assert.Equal(value, item.Value);
+        }
+
+        [Theory, MemberData(nameof(CollectionSizesAndInvalidIndex))]
+        public void IOrderedDictionary_Insert_Key_Value_Invalid_Index(int count, int index)
+        {
+            IOrderedDictionary<TKey, TValue> dictionary = IOrderedDictionaryFactory(count);
+
+            var key = GetNewKey(dictionary);
+
+            var value = CreateTValue(count);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => dictionary.Insert(index, key, value));
+        }
+
+        #endregion Insert Key/Value
+
+        #region IReadOnlyDictionary<TKey, TValue>.Keys
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IReadOnlyDictionary_Generic_Keys_ContainsAllCorrectKeys(int count)
+        {
+            IDictionary<TKey, TValue> dictionary = GenericIDictionaryFactory(count);
+            IEnumerable<TKey> expected = dictionary.Select((pair) => pair.Key);
+            IEnumerable<TKey> keys = ((IReadOnlyDictionary<TKey, TValue>)dictionary).Keys;
+            Assert.True(expected.SequenceEqual(keys));
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IReadOnlyDictionary_Generic_Values_ContainsAllCorrectValues(int count)
+        {
+            IDictionary<TKey, TValue> dictionary = GenericIDictionaryFactory(count);
+            IEnumerable<TValue> expected = dictionary.Select((pair) => pair.Value);
+            IEnumerable<TValue> values = ((IReadOnlyDictionary<TKey, TValue>)dictionary).Values;
+            Assert.True(expected.SequenceEqual(values));
+        }
+
+        #endregion IReadOnlyDictionary<TKey, TValue>.Keys
+
+        public static IEnumerable<object[]> CollectionSizesAndInvalidIndex()
+        {
+            // invalid
+            yield return new object[] { 1, -1 };
+            // out of range
+            yield return new object[] { 0, 1 };
+            yield return new object[] { 75, 100 };
+        }
+
+        public static IEnumerable<object[]> ValidCollectionSizesAndIndex()
+        {
+            yield return new object[] { 1, 0 };
+            yield return new object[] { 75, 50 };
+        }
     }
 }

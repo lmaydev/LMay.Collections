@@ -2,7 +2,8 @@
 
 namespace System.Collections.Generic;
 
-public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> where TKey : notnull
+public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>, IReadOnlyOrderedDictionary<TKey, TValue>
+    where TKey : notnull
 {
     private readonly Dictionary<TKey, TValue> dictionary;
     private readonly List<KeyValuePair<TKey, TValue>> list;
