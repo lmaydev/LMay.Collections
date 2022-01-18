@@ -16,6 +16,22 @@ namespace System.Collections.Tests
         #region IDictionary Helper Methods
 
         /// <summary>
+        /// Used in IDictionary_NonGeneric_Values_ModifyingTheDictionaryUpdatesTheCollection and
+        /// IDictionary_NonGeneric_Keys_ModifyingTheDictionaryUpdatesTheCollection.
+        /// Some collections (e.g ConcurrentDictionary) use iterators in the Keys and Values properties,
+        /// and do not respond to updates in the base collection.
+        /// </summary>
+        protected virtual bool IDictionary_NonGeneric_Keys_Values_ModifyingTheDictionaryUpdatesTheCollection => true;
+
+        /// <summary>
+        /// Used in IDictionary_NonGeneric_Values_Enumeration_ParentDictionaryModifiedInvalidatesEnumerator and
+        /// IDictionary_NonGeneric_Keys_Enumeration_ParentDictionaryModifiedInvalidatesEnumerator.
+        /// Some collections (e.g. ConcurrentDictionary) do not throw an InvalidOperationException
+        /// when enumerating the Keys or Values property and the parent is modified.
+        /// </summary>
+        protected virtual bool IDictionary_NonGeneric_Keys_Values_ParentDictionaryModifiedInvalidates => true;
+
+        /// <summary>
         /// To be implemented in the concrete Dictionary test classes. Creates an instance of TValue that
         /// is dependent only on the seed passed as input and will return the same value on repeated
         /// calls with the same seed.
@@ -48,6 +64,19 @@ namespace System.Collections.Tests
         }
 
         /// <summary>
+        /// Helper method to get a key that doesn't already exist within the dictionary
+        /// </summary>
+        /// <param name="dictionary"></param>
+        protected object GetNewKey(IDictionary dictionary)
+        {
+            int seed = 840;
+            object missingKey = CreateTKey(seed++);
+            while (dictionary.Contains(missingKey) || missingKey.Equals(null))
+                missingKey = CreateTKey(seed++);
+            return missingKey;
+        }
+
+        /// <summary>
         /// Creates an instance of an IDictionary that can be used for testing.
         /// </summary>
         /// <returns>An instance of an IDictionary that can be used for testing.</returns>
@@ -65,48 +94,24 @@ namespace System.Collections.Tests
             return collection;
         }
 
-        /// <summary>
-        /// Helper method to get a key that doesn't already exist within the dictionary
-        /// </summary>
-        /// <param name="dictionary"></param>
-        protected object GetNewKey(IDictionary dictionary)
-        {
-            int seed = 840;
-            object missingKey = CreateTKey(seed++);
-            while (dictionary.Contains(missingKey) || missingKey.Equals(null))
-                missingKey = CreateTKey(seed++);
-            return missingKey;
-        }
-
-        /// <summary>
-        /// Used in IDictionary_NonGeneric_Values_ModifyingTheDictionaryUpdatesTheCollection and
-        /// IDictionary_NonGeneric_Keys_ModifyingTheDictionaryUpdatesTheCollection.
-        /// Some collections (e.g ConcurrentDictionary) use iterators in the Keys and Values properties,
-        /// and do not respond to updates in the base collection.
-        /// </summary>
-        protected virtual bool IDictionary_NonGeneric_Keys_Values_ModifyingTheDictionaryUpdatesTheCollection => true;
-
-        /// <summary>
-        /// Used in IDictionary_NonGeneric_Values_Enumeration_ParentDictionaryModifiedInvalidatesEnumerator and
-        /// IDictionary_NonGeneric_Keys_Enumeration_ParentDictionaryModifiedInvalidatesEnumerator.
-        /// Some collections (e.g. ConcurrentDictionary) do not throw an InvalidOperationException
-        /// when enumerating the Keys or Values property and the parent is modified.
-        /// </summary>
-        protected virtual bool IDictionary_NonGeneric_Keys_Values_ParentDictionaryModifiedInvalidates => true;
-
-        #endregion
+        #endregion IDictionary Helper Methods
 
         #region ICollection Helper Methods
 
-        protected override ICollection NonGenericICollectionFactory()
-        {
-            return NonGenericIDictionaryFactory();
-        }
-
         protected override bool DuplicateValuesAllowed => false;
-        protected override bool NullAllowed => false;
+
         protected override bool Enumerator_Current_UndefinedOperation_Throws => true;
+
         protected override Type ICollection_NonGeneric_CopyTo_ArrayOfEnumType_ThrowType => typeof(ArgumentException);
+
+        /// <summary>
+        /// Used in IDictionary_NonGeneric_Keys_Enumeration_Reset and IDictionary_NonGeneric_Values_Enumeration_Reset.
+        /// Typically, the support for Reset in enumerators for the Keys and Values depend on the support for it
+        /// in the parent dictionary. However, some collections (e.g. ConcurrentDictionary) don't.
+        /// </summary>
+        protected virtual bool IDictionary_NonGeneric_Keys_Values_Enumeration_ResetImplemented => ResetImplemented;
+
+        protected override bool NullAllowed => false;
 
         protected override void AddToCollection(ICollection collection, int numberOfItemsToAdd)
         {
@@ -192,14 +197,12 @@ namespace System.Collections.Tests
             }
         }
 
-        /// <summary>
-        /// Used in IDictionary_NonGeneric_Keys_Enumeration_Reset and IDictionary_NonGeneric_Values_Enumeration_Reset.
-        /// Typically, the support for Reset in enumerators for the Keys and Values depend on the support for it
-        /// in the parent dictionary. However, some collections (e.g. ConcurrentDictionary) don't.
-        /// </summary>
-        protected virtual bool IDictionary_NonGeneric_Keys_Values_Enumeration_ResetImplemented => ResetImplemented;
+        protected override ICollection NonGenericICollectionFactory()
+        {
+            return NonGenericIDictionaryFactory();
+        }
 
-        #endregion
+        #endregion ICollection Helper Methods
 
         #region IsFixedSize
 
@@ -211,7 +214,7 @@ namespace System.Collections.Tests
             Assert.False(collection.IsFixedSize);
         }
 
-        #endregion
+        #endregion IsFixedSize
 
         #region IsReadOnly
 
@@ -223,26 +226,9 @@ namespace System.Collections.Tests
             Assert.Equal(IsReadOnly, collection.IsReadOnly);
         }
 
-        #endregion
+        #endregion IsReadOnly
 
         #region Item Getter
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_ItemGet_NullKey(int count)
-        {
-            IDictionary dictionary = NonGenericIDictionaryFactory(count);
-            if (!NullAllowed)
-            {
-                Assert.Throws<ArgumentNullException>(() => dictionary[null]);
-            }
-            else
-            {
-                object value = CreateTValue(3452);
-                dictionary[null] = value;
-                Assert.Equal(value, dictionary[null]);
-            }
-        }
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
@@ -269,6 +255,23 @@ namespace System.Collections.Tests
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_ItemGet_NullKey(int count)
+        {
+            IDictionary dictionary = NonGenericIDictionaryFactory(count);
+            if (!NullAllowed)
+            {
+                Assert.Throws<ArgumentNullException>(() => dictionary[null]);
+            }
+            else
+            {
+                object value = CreateTValue(3452);
+                dictionary[null] = value;
+                Assert.Equal(value, dictionary[null]);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
         public void IDictionary_NonGeneric_ItemGet_PresenobjectReturnsCorrecobject(int count)
         {
             IDictionary dictionary = NonGenericIDictionaryFactory(count);
@@ -278,9 +281,19 @@ namespace System.Collections.Tests
             }
         }
 
-        #endregion
+        #endregion Item Getter
 
         #region Item Setter
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_ItemSet_AddsNewValueWhenNotPresent(int count)
+        {
+            IDictionary dictionary = NonGenericIDictionaryFactory(count);
+            object missingKey = GetNewKey(dictionary);
+            dictionary[missingKey] = CreateTValue(543);
+            Assert.Equal(count + 1, dictionary.Count);
+        }
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
@@ -313,16 +326,6 @@ namespace System.Collections.Tests
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_ItemSet_AddsNewValueWhenNotPresent(int count)
-        {
-            IDictionary dictionary = NonGenericIDictionaryFactory(count);
-            object missingKey = GetNewKey(dictionary);
-            dictionary[missingKey] = CreateTValue(543);
-            Assert.Equal(count + 1, dictionary.Count);
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
         public void IDictionary_NonGeneric_ItemSet_ReplacesExistingValueWhenPresent(int count)
         {
             IDictionary dictionary = NonGenericIDictionaryFactory(count);
@@ -334,7 +337,7 @@ namespace System.Collections.Tests
             Assert.Equal(newValue, dictionary[existingKey]);
         }
 
-        #endregion
+        #endregion Item Setter
 
         #region Keys
 
@@ -348,24 +351,6 @@ namespace System.Collections.Tests
             int i = 0;
             foreach (object key in dictionary.Keys)
                 Assert.Equal(expected[i++], key);
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Keys_ModifyingTheDictionaryUpdatesTheCollection(int count)
-        {
-            IDictionary dictionary = NonGenericIDictionaryFactory(count);
-            ICollection keys = dictionary.Keys;
-            int previousCount = keys.Count;
-            dictionary.Clear();
-            if (IDictionary_NonGeneric_Keys_Values_ModifyingTheDictionaryUpdatesTheCollection)
-            {
-                Assert.Empty(keys);
-            }
-            else
-            {
-                Assert.Equal(previousCount, keys.Count);
-            }
         }
 
         [Theory]
@@ -403,7 +388,25 @@ namespace System.Collections.Tests
                 Assert.Throws<NotSupportedException>(() => enumerator.Reset());
         }
 
-        #endregion
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_Keys_ModifyingTheDictionaryUpdatesTheCollection(int count)
+        {
+            IDictionary dictionary = NonGenericIDictionaryFactory(count);
+            ICollection keys = dictionary.Keys;
+            int previousCount = keys.Count;
+            dictionary.Clear();
+            if (IDictionary_NonGeneric_Keys_Values_ModifyingTheDictionaryUpdatesTheCollection)
+            {
+                Assert.Empty(keys);
+            }
+            else
+            {
+                Assert.Equal(previousCount, keys.Count);
+            }
+        }
+
+        #endregion Keys
 
         #region Values
 
@@ -417,41 +420,6 @@ namespace System.Collections.Tests
             int i = 0;
             foreach (object value in dictionary.Values)
                 Assert.Equal(expected[i++], value);
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Values_IncludeDuplicatesMultipleTimes(int count)
-        {
-            IDictionary dictionary = NonGenericIDictionaryFactory(count);
-            List<DictionaryEntry> entries = new List<DictionaryEntry>();
-
-            foreach (DictionaryEntry pair in dictionary)
-                entries.Add(pair);
-            foreach (DictionaryEntry pair in entries)
-            {
-                object missingKey = GetNewKey(dictionary);
-                dictionary.Add(missingKey, (pair.Value));
-            }
-            Assert.Equal(count * 2, dictionary.Values.Count);
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Values_ModifyingTheDictionaryUpdatesTheCollection(int count)
-        {
-            IDictionary dictionary = NonGenericIDictionaryFactory(count);
-            ICollection values = dictionary.Values;
-            int previousCount = values.Count;
-            dictionary.Clear();
-            if (IDictionary_NonGeneric_Keys_Values_ModifyingTheDictionaryUpdatesTheCollection)
-            {
-                Assert.Empty(values);
-            }
-            else
-            {
-                Assert.Equal(previousCount, values.Count);
-            }
         }
 
         [Theory]
@@ -490,37 +458,85 @@ namespace System.Collections.Tests
                 Assert.Throws<NotSupportedException>(() => enumerator.Reset());
         }
 
-        #endregion
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_Values_IncludeDuplicatesMultipleTimes(int count)
+        {
+            IDictionary dictionary = NonGenericIDictionaryFactory(count);
+            List<DictionaryEntry> entries = new List<DictionaryEntry>();
+
+            foreach (DictionaryEntry pair in dictionary)
+                entries.Add(pair);
+            foreach (DictionaryEntry pair in entries)
+            {
+                object missingKey = GetNewKey(dictionary);
+                dictionary.Add(missingKey, (pair.Value));
+            }
+            Assert.Equal(count * 2, dictionary.Values.Count);
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_Values_ModifyingTheDictionaryUpdatesTheCollection(int count)
+        {
+            IDictionary dictionary = NonGenericIDictionaryFactory(count);
+            ICollection values = dictionary.Values;
+            int previousCount = values.Count;
+            dictionary.Clear();
+            if (IDictionary_NonGeneric_Keys_Values_ModifyingTheDictionaryUpdatesTheCollection)
+            {
+                Assert.Empty(values);
+            }
+            else
+            {
+                Assert.Equal(previousCount, values.Count);
+            }
+        }
+
+        #endregion Values
 
         #region Add
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Add_OnReadOnlyDictionary_ThrowsNotSupportedException(int count)
+        public void IDictionary_NonGeneric_Add_DuplicateKey(int count)
         {
-            if (IsReadOnly)
+            if (!IsReadOnly)
             {
                 IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                Assert.Throws<NotSupportedException>(() => dictionary.Add(CreateTKey(0), CreateTValue(0)));
+                object missingKey = GetNewKey(dictionary);
+                dictionary.Add(missingKey, CreateTValue(34251));
+                Assert.Throws<ArgumentException>(() => dictionary.Add(missingKey, CreateTValue(134)));
             }
         }
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Add_NullKey_NullValue(int count)
+        public void IDictionary_NonGeneric_Add_NonNullKey_NonNulValue(int count)
         {
-            IDictionary dictionary = NonGenericIDictionaryFactory(count);
-            object missingKey = null;
-            object value = null;
-            if (NullAllowed && !IsReadOnly)
+            if (!IsReadOnly)
             {
+                IDictionary dictionary = NonGenericIDictionaryFactory(count);
+                object missingKey = GetNewKey(dictionary);
+                object value = CreateTValue(1342);
                 dictionary.Add(missingKey, value);
                 Assert.Equal(count + 1, dictionary.Count);
                 Assert.Equal(value, dictionary[missingKey]);
             }
-            else if (!IsReadOnly)
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_Add_NonNullKey_NullValue(int count)
+        {
+            if (!IsReadOnly)
             {
-                Assert.Throws<ArgumentNullException>(() => dictionary.Add(missingKey, value));
+                IDictionary dictionary = NonGenericIDictionaryFactory(count);
+                object missingKey = GetNewKey(dictionary);
+                object value = null;
+                dictionary.Add(missingKey, value);
+                Assert.Equal(count + 1, dictionary.Count);
+                Assert.Equal(value, dictionary[missingKey]);
             }
         }
 
@@ -545,48 +561,35 @@ namespace System.Collections.Tests
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Add_NonNullKey_NullValue(int count)
+        public void IDictionary_NonGeneric_Add_NullKey_NullValue(int count)
         {
-            if (!IsReadOnly)
+            IDictionary dictionary = NonGenericIDictionaryFactory(count);
+            object missingKey = null;
+            object value = null;
+            if (NullAllowed && !IsReadOnly)
             {
-                IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                object missingKey = GetNewKey(dictionary);
-                object value = null;
                 dictionary.Add(missingKey, value);
                 Assert.Equal(count + 1, dictionary.Count);
                 Assert.Equal(value, dictionary[missingKey]);
+            }
+            else if (!IsReadOnly)
+            {
+                Assert.Throws<ArgumentNullException>(() => dictionary.Add(missingKey, value));
             }
         }
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Add_NonNullKey_NonNulValue(int count)
+        public void IDictionary_NonGeneric_Add_OnReadOnlyDictionary_ThrowsNotSupportedException(int count)
         {
-            if (!IsReadOnly)
+            if (IsReadOnly)
             {
                 IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                object missingKey = GetNewKey(dictionary);
-                object value = CreateTValue(1342);
-                dictionary.Add(missingKey, value);
-                Assert.Equal(count + 1, dictionary.Count);
-                Assert.Equal(value, dictionary[missingKey]);
+                Assert.Throws<NotSupportedException>(() => dictionary.Add(CreateTKey(0), CreateTValue(0)));
             }
         }
 
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Add_DuplicateKey(int count)
-        {
-            if (!IsReadOnly)
-            {
-                IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                object missingKey = GetNewKey(dictionary);
-                dictionary.Add(missingKey, CreateTValue(34251));
-                Assert.Throws<ArgumentException>(() => dictionary.Add(missingKey, CreateTValue(134)));
-            }
-        }
-
-        #endregion
+        #endregion Add
 
         #region Remove
 
@@ -608,7 +611,7 @@ namespace System.Collections.Tests
             }
         }
 
-        #endregion
+        #endregion Remove
 
         #region Clear
 
@@ -639,31 +642,20 @@ namespace System.Collections.Tests
             }
         }
 
-        #endregion
+        #endregion Clear
 
         #region Contains
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Contains_ValidKeyNotContainedInDictionary(int count)
+        public void IDictionary_NonGeneric_Contains_NullKeyContainedInDictionary(int count)
         {
-            if (!IsReadOnly)
+            if (NullAllowed && !IsReadOnly)
             {
                 IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                object missingKey = GetNewKey(dictionary);
-                Assert.False(dictionary.Contains(missingKey));
-            }
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Contains_ValidKeyContainedInDictionary(int count)
-        {
-            if (!IsReadOnly)
-            {
-                IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                object missingKey = GetNewKey(dictionary);
-                dictionary.Add(missingKey, CreateTValue(34251));
+                object missingKey = null;
+                if (!dictionary.Contains(missingKey))
+                    dictionary.Add(missingKey, CreateTValue(5341));
                 Assert.True(dictionary.Contains(missingKey));
             }
         }
@@ -690,72 +682,53 @@ namespace System.Collections.Tests
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_Contains_NullKeyContainedInDictionary(int count)
+        public void IDictionary_NonGeneric_Contains_ValidKeyContainedInDictionary(int count)
         {
-            if (NullAllowed && !IsReadOnly)
+            if (!IsReadOnly)
             {
                 IDictionary dictionary = NonGenericIDictionaryFactory(count);
-                object missingKey = null;
-                if (!dictionary.Contains(missingKey))
-                    dictionary.Add(missingKey, CreateTValue(5341));
+                object missingKey = GetNewKey(dictionary);
+                dictionary.Add(missingKey, CreateTValue(34251));
                 Assert.True(dictionary.Contains(missingKey));
             }
         }
 
-        #endregion
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_Contains_ValidKeyNotContainedInDictionary(int count)
+        {
+            if (!IsReadOnly)
+            {
+                IDictionary dictionary = NonGenericIDictionaryFactory(count);
+                object missingKey = GetNewKey(dictionary);
+                Assert.False(dictionary.Contains(missingKey));
+            }
+        }
+
+        #endregion Contains
 
         #region IDictionaryEnumerator
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_IDictionaryEnumerator_Current_FromStartToFinish(int count)
+        public virtual void IDictionary_NonGeneric_IDictionaryEnumerator_Current_AfterEndOfEnumerable_UndefinedBehavior(int count)
         {
+            object current, key, value, entry;
             IDictionaryEnumerator enumerator = NonGenericIDictionaryFactory(count).GetEnumerator();
-            for (int i = 0; i < 2; i++)
+            while (enumerator.MoveNext()) ;
+            if (Enumerator_Current_UndefinedOperation_Throws)
             {
-                int counter = 0;
-                while (enumerator.MoveNext())
-                {
-                    object current = enumerator.Current;
-                    object key = enumerator.Key;
-                    object value = enumerator.Value;
-                    DictionaryEntry entry = enumerator.Entry;
-                    Assert.Equal(current, entry);
-                    Assert.Equal(key, entry.Key);
-                    Assert.Equal(value, entry.Value);
-                    counter++;
-                }
-                Assert.Equal(count, counter);
-                if (!ResetImplemented)
-                {
-                    break;
-                }
-                enumerator.Reset();
+                Assert.Throws<InvalidOperationException>(() => enumerator.Current);
+                Assert.Throws<InvalidOperationException>(() => enumerator.Key);
+                Assert.Throws<InvalidOperationException>(() => enumerator.Value);
+                Assert.Throws<InvalidOperationException>(() => enumerator.Entry);
             }
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_IDictionaryEnumerator_Reset_BeforeIteration_Support(int count)
-        {
-            IDictionaryEnumerator enumerator = NonGenericIDictionaryFactory(count).GetEnumerator();
-            if (ResetImplemented)
-                enumerator.Reset();
             else
-                Assert.Throws<NotSupportedException>(() => enumerator.Reset());
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IDictionary_NonGeneric_IDictionaryEnumerator_Current_ReturnsSameValueOnRepeatedCalls(int count)
-        {
-            IDictionaryEnumerator enumerator = NonGenericIDictionaryFactory(count).GetEnumerator();
-            while (enumerator.MoveNext())
             {
-                object current = enumerator.Current;
-                Assert.Equal(current, enumerator.Current);
-                Assert.Equal(current, enumerator.Current);
-                Assert.Equal(current, enumerator.Current);
+                current = enumerator.Current;
+                key = enumerator.Key;
+                value = enumerator.Value;
+                entry = enumerator.Entry;
             }
         }
 
@@ -783,24 +756,29 @@ namespace System.Collections.Tests
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public virtual void IDictionary_NonGeneric_IDictionaryEnumerator_Current_AfterEndOfEnumerable_UndefinedBehavior(int count)
+        public void IDictionary_NonGeneric_IDictionaryEnumerator_Current_FromStartToFinish(int count)
         {
-            object current, key, value, entry;
             IDictionaryEnumerator enumerator = NonGenericIDictionaryFactory(count).GetEnumerator();
-            while (enumerator.MoveNext()) ;
-            if (Enumerator_Current_UndefinedOperation_Throws)
+            for (int i = 0; i < 2; i++)
             {
-                Assert.Throws<InvalidOperationException>(() => enumerator.Current);
-                Assert.Throws<InvalidOperationException>(() => enumerator.Key);
-                Assert.Throws<InvalidOperationException>(() => enumerator.Value);
-                Assert.Throws<InvalidOperationException>(() => enumerator.Entry);
-            }
-            else
-            {
-                current = enumerator.Current;
-                key = enumerator.Key;
-                value = enumerator.Value;
-                entry = enumerator.Entry;
+                int counter = 0;
+                while (enumerator.MoveNext())
+                {
+                    object current = enumerator.Current;
+                    object key = enumerator.Key;
+                    object value = enumerator.Value;
+                    DictionaryEntry entry = enumerator.Entry;
+                    Assert.Equal(current, entry);
+                    Assert.Equal(key, entry.Key);
+                    Assert.Equal(value, entry.Value);
+                    counter++;
+                }
+                Assert.Equal(count, counter);
+                if (!ResetImplemented)
+                {
+                    break;
+                }
+                enumerator.Reset();
             }
         }
 
@@ -833,6 +811,31 @@ namespace System.Collections.Tests
             });
         }
 
-        #endregion
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_IDictionaryEnumerator_Current_ReturnsSameValueOnRepeatedCalls(int count)
+        {
+            IDictionaryEnumerator enumerator = NonGenericIDictionaryFactory(count).GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                object current = enumerator.Current;
+                Assert.Equal(current, enumerator.Current);
+                Assert.Equal(current, enumerator.Current);
+                Assert.Equal(current, enumerator.Current);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IDictionary_NonGeneric_IDictionaryEnumerator_Reset_BeforeIteration_Support(int count)
+        {
+            IDictionaryEnumerator enumerator = NonGenericIDictionaryFactory(count).GetEnumerator();
+            if (ResetImplemented)
+                enumerator.Reset();
+            else
+                Assert.Throws<NotSupportedException>(() => enumerator.Reset());
+        }
+
+        #endregion IDictionaryEnumerator
     }
 }

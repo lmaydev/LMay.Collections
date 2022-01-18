@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -16,13 +15,6 @@ namespace System.Collections.Tests
         #region IEnumerable Helper Methods
 
         /// <summary>
-        /// Creates an instance of an IEnumerable that can be used for testing.
-        /// </summary>
-        /// <param name="count">The number of unique items that the returned IEnumerable contains.</param>
-        /// <returns>An instance of an IEnumerable that can be used for testing.</returns>
-        protected abstract IEnumerable NonGenericIEnumerableFactory(int count);
-
-        /// <summary>
         /// Modifies the given IEnumerable such that any enumerators for that IEnumerable will be
         /// invalidated.
         /// </summary>
@@ -31,22 +23,13 @@ namespace System.Collections.Tests
         protected delegate bool ModifyEnumerable(IEnumerable enumerable);
 
         /// <summary>
-        /// To be implemented in the concrete collections test classes. Returns a set of ModifyEnumerable delegates
-        /// that modify the enumerable passed to them.
+        /// An enum to allow specification of the order of the Enumerable. Used in validation for enumerables.
         /// </summary>
-        protected abstract IEnumerable<ModifyEnumerable> GetModifyEnumerables(ModifyOperation operations);
-
-        protected virtual ModifyOperation ModifyEnumeratorThrows => ModifyOperation.Add | ModifyOperation.Insert | ModifyOperation.Overwrite | ModifyOperation.Remove | ModifyOperation.Clear;
-
-        protected virtual ModifyOperation ModifyEnumeratorAllowed => ModifyOperation.None;
-
-        /// <summary>
-        /// The Reset method is provided for COM interoperability. It does not necessarily need to be
-        /// implemented; instead, the implementer can simply throw a NotSupportedException.
-        ///
-        /// If Reset is not implemented, this property must return False. The default value is true.
-        /// </summary>
-        protected virtual bool ResetImplemented => true;
+        protected enum EnumerableOrder
+        {
+            Unspecified,
+            Sequential
+        }
 
         /// <summary>
         /// When calling Current of the enumerator before the first MoveNext, after the end of the collection,
@@ -60,10 +43,9 @@ namespace System.Collections.Tests
         /// </summary>
         protected virtual bool Enumerator_Current_UndefinedOperation_Throws => false;
 
-        /// <summary>
-        /// Whether the collection can be serialized.
-        /// </summary>
-        protected virtual bool SupportsSerialization => true;
+        protected virtual ModifyOperation ModifyEnumeratorAllowed => ModifyOperation.None;
+
+        protected virtual ModifyOperation ModifyEnumeratorThrows => ModifyOperation.Add | ModifyOperation.Insert | ModifyOperation.Overwrite | ModifyOperation.Remove | ModifyOperation.Clear;
 
         /// <summary>
         /// Specifies whether this IEnumerable follows some sort of ordering pattern.
@@ -71,15 +53,32 @@ namespace System.Collections.Tests
         protected virtual EnumerableOrder Order => EnumerableOrder.Sequential;
 
         /// <summary>
-        /// An enum to allow specification of the order of the Enumerable. Used in validation for enumerables.
+        /// The Reset method is provided for COM interoperability. It does not necessarily need to be
+        /// implemented; instead, the implementer can simply throw a NotSupportedException.
+        ///
+        /// If Reset is not implemented, this property must return False. The default value is true.
         /// </summary>
-        protected enum EnumerableOrder
-        {
-            Unspecified,
-            Sequential
-        }
+        protected virtual bool ResetImplemented => true;
 
-        #endregion
+        /// <summary>
+        /// Whether the collection can be serialized.
+        /// </summary>
+        protected virtual bool SupportsSerialization => true;
+
+        /// <summary>
+        /// To be implemented in the concrete collections test classes. Returns a set of ModifyEnumerable delegates
+        /// that modify the enumerable passed to them.
+        /// </summary>
+        protected abstract IEnumerable<ModifyEnumerable> GetModifyEnumerables(ModifyOperation operations);
+
+        /// <summary>
+        /// Creates an instance of an IEnumerable that can be used for testing.
+        /// </summary>
+        /// <param name="count">The number of unique items that the returned IEnumerable contains.</param>
+        /// <returns>An instance of an IEnumerable that can be used for testing.</returns>
+        protected abstract IEnumerable NonGenericIEnumerableFactory(int count);
+
+        #endregion IEnumerable Helper Methods
 
         #region GetEnumerator()
 
@@ -105,9 +104,20 @@ namespace System.Collections.Tests
             Assert.Equal(count * count * count, iterations);
         }
 
-        #endregion
+        #endregion GetEnumerator()
 
         #region Enumerator.MoveNext
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IEnumerable_NonGeneric_Enumerator_MoveNext_AfterEndOfCollection(int count)
+        {
+            IEnumerator enumerator = NonGenericIEnumerableFactory(count).GetEnumerator();
+            for (int i = 0; i < count; i++)
+                enumerator.MoveNext();
+            Assert.False(enumerator.MoveNext());
+            Assert.False(enumerator.MoveNext());
+        }
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
@@ -120,16 +130,18 @@ namespace System.Collections.Tests
             Assert.Equal(count, iterations);
         }
 
-
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void IEnumerable_NonGeneric_Enumerator_MoveNext_AfterEndOfCollection(int count)
+        public void IEnumerable_NonGeneric_Enumerator_MoveNext_ModifiedAfterEnumeration_ThrowsInvalidOperationException(int count)
         {
-            IEnumerator enumerator = NonGenericIEnumerableFactory(count).GetEnumerator();
-            for (int i = 0; i < count; i++)
-                enumerator.MoveNext();
-            Assert.False(enumerator.MoveNext());
-            Assert.False(enumerator.MoveNext());
+            Assert.All(GetModifyEnumerables(ModifyEnumeratorThrows), ModifyEnumerable =>
+            {
+                IEnumerable enumerable = NonGenericIEnumerableFactory(count);
+                IEnumerator enumerator = enumerable.GetEnumerator();
+                while (enumerator.MoveNext()) ;
+                if (ModifyEnumerable(enumerable))
+                    Assert.Throws<InvalidOperationException>(() => enumerator.MoveNext());
+            });
         }
 
         [Theory]
@@ -160,78 +172,9 @@ namespace System.Collections.Tests
             });
         }
 
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IEnumerable_NonGeneric_Enumerator_MoveNext_ModifiedAfterEnumeration_ThrowsInvalidOperationException(int count)
-        {
-            Assert.All(GetModifyEnumerables(ModifyEnumeratorThrows), ModifyEnumerable =>
-            {
-                IEnumerable enumerable = NonGenericIEnumerableFactory(count);
-                IEnumerator enumerator = enumerable.GetEnumerator();
-                while (enumerator.MoveNext()) ;
-                if (ModifyEnumerable(enumerable))
-                    Assert.Throws<InvalidOperationException>(() => enumerator.MoveNext());
-            });
-        }
-
-        #endregion
+        #endregion Enumerator.MoveNext
 
         #region Enumerator.Current
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IEnumerable_NonGeneric_Enumerator_Current_FromStartToFinish(int count)
-        {
-            IEnumerator enumerator = NonGenericIEnumerableFactory(count).GetEnumerator();
-            object current;
-            while (enumerator.MoveNext())
-                current = enumerator.Current;
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IEnumerable_NonGeneric_Enumerator_Current_ReturnsSameValueOnRepeatedCalls(int count)
-        {
-            IEnumerator enumerator = NonGenericIEnumerableFactory(count).GetEnumerator();
-            while (enumerator.MoveNext())
-            {
-                object current = enumerator.Current;
-                Assert.Equal(current, enumerator.Current);
-                Assert.Equal(current, enumerator.Current);
-                Assert.Equal(current, enumerator.Current);
-            }
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IEnumerable_NonGeneric_Enumerator_Current_ReturnsSameObjectsOnDifferentEnumerators(int count)
-        {
-            // Ensures that the elements returned from enumeration are exactly the same collection of
-            // elements returned from a previous enumeration
-            IEnumerable enumerable = NonGenericIEnumerableFactory(count);
-            Dictionary<object, int> firstValues = new Dictionary<object, int>(count);
-            Dictionary<object, int> secondValues = new Dictionary<object, int>(count);
-            foreach (object item in enumerable)
-                firstValues[item] = firstValues.ContainsKey(item) ? firstValues[item]++ : 1;
-            foreach (object item in enumerable)
-                secondValues[item] = secondValues.ContainsKey(item) ? secondValues[item]++ : 1;
-            Assert.Equal(firstValues.Count, secondValues.Count);
-            foreach (object key in firstValues.Keys)
-                Assert.Equal(firstValues[key], secondValues[key]);
-        }
-
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public virtual void Enumerator_Current_BeforeFirstMoveNext_UndefinedBehavior(int count)
-        {
-            object current;
-            IEnumerable enumerable = NonGenericIEnumerableFactory(count);
-            IEnumerator enumerator = enumerable.GetEnumerator();
-            if (Enumerator_Current_UndefinedOperation_Throws)
-                Assert.Throws<InvalidOperationException>(() => enumerator.Current);
-            else
-                current = enumerator.Current;
-        }
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
@@ -241,6 +184,19 @@ namespace System.Collections.Tests
             IEnumerable enumerable = NonGenericIEnumerableFactory(count);
             IEnumerator enumerator = enumerable.GetEnumerator();
             while (enumerator.MoveNext()) ;
+            if (Enumerator_Current_UndefinedOperation_Throws)
+                Assert.Throws<InvalidOperationException>(() => enumerator.Current);
+            else
+                current = enumerator.Current;
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public virtual void Enumerator_Current_BeforeFirstMoveNext_UndefinedBehavior(int count)
+        {
+            object current;
+            IEnumerable enumerable = NonGenericIEnumerableFactory(count);
+            IEnumerator enumerator = enumerable.GetEnumerator();
             if (Enumerator_Current_UndefinedOperation_Throws)
                 Assert.Throws<InvalidOperationException>(() => enumerator.Current);
             else
@@ -266,7 +222,49 @@ namespace System.Collections.Tests
             });
         }
 
-        #endregion
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IEnumerable_NonGeneric_Enumerator_Current_FromStartToFinish(int count)
+        {
+            IEnumerator enumerator = NonGenericIEnumerableFactory(count).GetEnumerator();
+            object current;
+            while (enumerator.MoveNext())
+                current = enumerator.Current;
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IEnumerable_NonGeneric_Enumerator_Current_ReturnsSameObjectsOnDifferentEnumerators(int count)
+        {
+            // Ensures that the elements returned from enumeration are exactly the same collection of
+            // elements returned from a previous enumeration
+            IEnumerable enumerable = NonGenericIEnumerableFactory(count);
+            Dictionary<object, int> firstValues = new Dictionary<object, int>(count);
+            Dictionary<object, int> secondValues = new Dictionary<object, int>(count);
+            foreach (object item in enumerable)
+                firstValues[item] = firstValues.ContainsKey(item) ? firstValues[item]++ : 1;
+            foreach (object item in enumerable)
+                secondValues[item] = secondValues.ContainsKey(item) ? secondValues[item]++ : 1;
+            Assert.Equal(firstValues.Count, secondValues.Count);
+            foreach (object key in firstValues.Keys)
+                Assert.Equal(firstValues[key], secondValues[key]);
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IEnumerable_NonGeneric_Enumerator_Current_ReturnsSameValueOnRepeatedCalls(int count)
+        {
+            IEnumerator enumerator = NonGenericIEnumerableFactory(count).GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                object current = enumerator.Current;
+                Assert.Equal(current, enumerator.Current);
+                Assert.Equal(current, enumerator.Current);
+                Assert.Equal(current, enumerator.Current);
+            }
+        }
+
+        #endregion Enumerator.Current
 
         #region Enumerator.Reset
 
@@ -279,6 +277,20 @@ namespace System.Collections.Tests
                 enumerator.Reset();
             else
                 Assert.Throws<NotSupportedException>(() => enumerator.Reset());
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidCollectionSizes))]
+        public void IEnumerable_NonGeneric_Enumerator_Reset_ModifiedAfterEnumeration_ThrowsInvalidOperationException(int count)
+        {
+            Assert.All(GetModifyEnumerables(ModifyEnumeratorThrows), ModifyEnumerable =>
+            {
+                IEnumerable enumerable = NonGenericIEnumerableFactory(count);
+                IEnumerator enumerator = enumerable.GetEnumerator();
+                while (enumerator.MoveNext()) ;
+                if (ModifyEnumerable(enumerable))
+                    Assert.Throws<InvalidOperationException>(() => enumerator.Reset());
+            });
         }
 
         [Theory]
@@ -309,20 +321,6 @@ namespace System.Collections.Tests
             });
         }
 
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void IEnumerable_NonGeneric_Enumerator_Reset_ModifiedAfterEnumeration_ThrowsInvalidOperationException(int count)
-        {
-            Assert.All(GetModifyEnumerables(ModifyEnumeratorThrows), ModifyEnumerable =>
-            {
-                IEnumerable enumerable = NonGenericIEnumerableFactory(count);
-                IEnumerator enumerator = enumerable.GetEnumerator();
-                while (enumerator.MoveNext()) ;
-                if (ModifyEnumerable(enumerable))
-                    Assert.Throws<InvalidOperationException>(() => enumerator.Reset());
-            });
-        }
-
-        #endregion
+        #endregion Enumerator.Reset
     }
 }

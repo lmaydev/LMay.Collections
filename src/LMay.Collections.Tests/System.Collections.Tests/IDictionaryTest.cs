@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Tests.Collections
 {
@@ -16,56 +15,51 @@ namespace Tests.Collections
         {
         }
 
-        protected IDictionary<TKey, TValue> GetDictionary(object[] items)
+        [Fact]
+        public void Contains_NullKey_ThrowsArgumentNullException()
         {
-            return (IDictionary<TKey, TValue>)GetCollection(items);
+            IDictionary dict = GetDictionary(new object[0]) as IDictionary;
+            AssertExtensions.Throws<ArgumentNullException>("key", () => dict.Contains(null));
         }
 
-        [Theory]
-        [InlineData(1)]
-        [InlineData(16)]
-        [InlineData(100)]
-        public void KeysShouldBeCorrect(int count)
+        [Fact]
+        public void IDictionaryGetEnumeratorShouldEnumerateSameItemsAsIEnumerableGetEnumerator()
         {
-            object[] items = GenerateItems(count);
-            var expectedKeys = new TKey[items.Length];
-            for (int i = 0; i < items.Length; ++i)
+            object[] items = GenerateItems(16);
+            IDictionary dict = GetDictionary(items) as IDictionary;
+            if (dict != null)
             {
-                expectedKeys[i] = ((KeyValuePair<TKey, TValue>)items[i]).Key;
-            }
-
-            IDictionary<TKey, TValue> dict = GetDictionary(items);
-
-            CollectionAssert.Equal(expectedKeys, dict.Keys);
-
-            IDictionary dict2 = dict as IDictionary;
-            if (dict2 != null)
-            {
-                CollectionAssert.Equal(expectedKeys, dict2.Keys);
+                IEnumerator enumerator = ((IEnumerable)dict).GetEnumerator();
+                IDictionaryEnumerator dictEnumerator = dict.GetEnumerator();
+                int i = 0;
+                while (i++ < 2)
+                {
+                    while (enumerator.MoveNext())
+                    {
+                        Assert.True(dictEnumerator.MoveNext());
+                        var pair = (KeyValuePair<TKey, TValue>)enumerator.Current;
+                        Assert.Equal(dictEnumerator.Current, dictEnumerator.Entry);
+                        var entry = dictEnumerator.Entry;
+                        Assert.Equal(pair.Key, dictEnumerator.Key);
+                        Assert.Equal(pair.Value, dictEnumerator.Value);
+                        Assert.Equal(pair.Key, entry.Key);
+                        Assert.Equal(pair.Value, entry.Value);
+                    }
+                    Assert.False(dictEnumerator.MoveNext());
+                    dictEnumerator.Reset();
+                    enumerator.Reset();
+                }
             }
         }
 
-        [Theory]
-        [InlineData(1)]
-        [InlineData(16)]
-        [InlineData(100)]
-        public void ValuesShouldBeCorrect(int count)
+        [Fact]
+        public void IDictionaryShouldContainAllKeys()
         {
-            object[] items = GenerateItems(count);
-            var expectedValues = new TValue[items.Length];
-            for (int i = 0; i < items.Length; ++i)
+            object[] items = GenerateItems(16);
+            IDictionary dict = GetDictionary(items) as IDictionary;
+            foreach (KeyValuePair<TKey, TValue> item in items)
             {
-                expectedValues[i] = ((KeyValuePair<TKey, TValue>)items[i]).Value;
-            }
-
-            IDictionary<TKey, TValue> dict = GetDictionary(items);
-
-            CollectionAssert.Equal(expectedValues, dict.Values);
-
-            IDictionary dict2 = dict as IDictionary;
-            if (dict2 != null)
-            {
-                CollectionAssert.Equal(expectedValues, dict2.Values);
+                Assert.True(dict.Contains(item.Key));
             }
         }
 
@@ -104,89 +98,6 @@ namespace Tests.Collections
                     {
                         dict2[pair.Key] = pair.Value;
                     }
-                }
-            }
-        }
-
-        [Fact]
-        public void IDictionaryShouldContainAllKeys()
-        {
-            object[] items = GenerateItems(16);
-            IDictionary dict = GetDictionary(items) as IDictionary;
-            foreach (KeyValuePair<TKey, TValue> item in items)
-            {
-                Assert.True(dict.Contains(item.Key));
-            }
-        }
-
-        [Fact]
-        public void Contains_NullKey_ThrowsArgumentNullException()
-        {
-            IDictionary dict = GetDictionary(new object[0]) as IDictionary;
-            AssertExtensions.Throws<ArgumentNullException>("key", () => dict.Contains(null));
-        }
-
-        [Fact]
-        public void WhenDictionaryIsReadOnlyAddShouldThrow()
-        {
-            object[] items = GenerateItems(16);
-            IDictionary dict = GetDictionary(items) as IDictionary;
-            if (dict.IsReadOnly)
-            {
-                var pair = (KeyValuePair<TKey, TValue>)GenerateItem();
-                Assert.Throws<NotSupportedException>(() => dict.Add(pair.Key, pair.Value));
-            }
-        }
-
-        [Fact]
-        public void WhenDictionaryIsReadOnlyClearShouldThrow()
-        {
-            object[] items = GenerateItems(16);
-            IDictionary dict = GetDictionary(items) as IDictionary;
-            if (dict.IsReadOnly)
-            {
-                Assert.Throws<NotSupportedException>(() => dict.Clear());
-            }
-        }
-
-        [Fact]
-        public void WhenDictionaryIsReadOnlyRemoveShouldThrow()
-        {
-            object[] items = GenerateItems(16);
-            IDictionary dict = GetDictionary(items) as IDictionary;
-            if (dict != null && dict.IsReadOnly)
-            {
-                var key = ((KeyValuePair<TKey, TValue>)GenerateItem()).Key;
-                Assert.Throws<NotSupportedException>(() => dict.Remove(key));
-            }
-        }
-
-        [Fact]
-        public void IDictionaryGetEnumeratorShouldEnumerateSameItemsAsIEnumerableGetEnumerator()
-        {
-            object[] items = GenerateItems(16);
-            IDictionary dict = GetDictionary(items) as IDictionary;
-            if (dict != null)
-            {
-                IEnumerator enumerator = ((IEnumerable)dict).GetEnumerator();
-                IDictionaryEnumerator dictEnumerator = dict.GetEnumerator();
-                int i = 0;
-                while (i++ < 2)
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        Assert.True(dictEnumerator.MoveNext());
-                        var pair = (KeyValuePair<TKey, TValue>) enumerator.Current;
-                        Assert.Equal(dictEnumerator.Current, dictEnumerator.Entry);
-                        var entry = dictEnumerator.Entry;
-                        Assert.Equal(pair.Key, dictEnumerator.Key);
-                        Assert.Equal(pair.Value, dictEnumerator.Value);
-                        Assert.Equal(pair.Key, entry.Key);
-                        Assert.Equal(pair.Value, entry.Value);
-                    }
-                    Assert.False(dictEnumerator.MoveNext());
-                    dictEnumerator.Reset();
-                    enumerator.Reset();
                 }
             }
         }
@@ -232,6 +143,30 @@ namespace Tests.Collections
             Assert.NotNull(keys.SyncRoot);
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(16)]
+        [InlineData(100)]
+        public void KeysShouldBeCorrect(int count)
+        {
+            object[] items = GenerateItems(count);
+            var expectedKeys = new TKey[items.Length];
+            for (int i = 0; i < items.Length; ++i)
+            {
+                expectedKeys[i] = ((KeyValuePair<TKey, TValue>)items[i]).Key;
+            }
+
+            IDictionary<TKey, TValue> dict = GetDictionary(items);
+
+            CollectionAssert.Equal(expectedKeys, dict.Keys);
+
+            IDictionary dict2 = dict as IDictionary;
+            if (dict2 != null)
+            {
+                CollectionAssert.Equal(expectedKeys, dict2.Keys);
+            }
+        }
+
         [Fact]
         public void ValueCollectionIsReadOnly()
         {
@@ -271,6 +206,70 @@ namespace Tests.Collections
             IDictionary<TKey, TValue> dict = GetDictionary(items);
             var values = (ICollection)dict.Values;
             Assert.NotNull(values.SyncRoot);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(16)]
+        [InlineData(100)]
+        public void ValuesShouldBeCorrect(int count)
+        {
+            object[] items = GenerateItems(count);
+            var expectedValues = new TValue[items.Length];
+            for (int i = 0; i < items.Length; ++i)
+            {
+                expectedValues[i] = ((KeyValuePair<TKey, TValue>)items[i]).Value;
+            }
+
+            IDictionary<TKey, TValue> dict = GetDictionary(items);
+
+            CollectionAssert.Equal(expectedValues, dict.Values);
+
+            IDictionary dict2 = dict as IDictionary;
+            if (dict2 != null)
+            {
+                CollectionAssert.Equal(expectedValues, dict2.Values);
+            }
+        }
+
+        [Fact]
+        public void WhenDictionaryIsReadOnlyAddShouldThrow()
+        {
+            object[] items = GenerateItems(16);
+            IDictionary dict = GetDictionary(items) as IDictionary;
+            if (dict.IsReadOnly)
+            {
+                var pair = (KeyValuePair<TKey, TValue>)GenerateItem();
+                Assert.Throws<NotSupportedException>(() => dict.Add(pair.Key, pair.Value));
+            }
+        }
+
+        [Fact]
+        public void WhenDictionaryIsReadOnlyClearShouldThrow()
+        {
+            object[] items = GenerateItems(16);
+            IDictionary dict = GetDictionary(items) as IDictionary;
+            if (dict.IsReadOnly)
+            {
+                Assert.Throws<NotSupportedException>(() => dict.Clear());
+            }
+        }
+
+        [Fact]
+        public void WhenDictionaryIsReadOnlyRemoveShouldThrow()
+        {
+            object[] items = GenerateItems(16);
+            IDictionary dict = GetDictionary(items) as IDictionary;
+            if (dict != null && dict.IsReadOnly)
+            {
+                var key = ((KeyValuePair<TKey, TValue>)GenerateItem()).Key;
+                Assert.Throws<NotSupportedException>(() => dict.Remove(key));
+            }
+        }
+
+        protected IDictionary<TKey, TValue> GetDictionary(object[] items)
+        {
+            return (IDictionary<TKey, TValue>)GetCollection(items);
         }
     }
 }

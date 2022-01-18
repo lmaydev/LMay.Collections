@@ -17,7 +17,8 @@ namespace System.Collections.Tests
         public void KeyValuePair_Deconstruct(int size)
         {
             IDictionary<TKey, TValue> dictionary = GenericIDictionaryFactory(size);
-            Assert.All(dictionary, (entry) => {
+            Assert.All(dictionary, (entry) =>
+            {
                 TKey key;
                 TValue value;
                 entry.Deconstruct(out key, out value);

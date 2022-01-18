@@ -7,18 +7,6 @@ namespace Tests.Collections
 {
     public static class ArrayExtensions
     {
-        public static T[] Slice<T>(
-            this T[] array,
-            int startIndex,
-            int length = -1)
-        {
-            if (length == -1)
-                length = array.Length - startIndex;
-            var tmp = new T[length];
-            Array.Copy(array, startIndex, tmp, 0, length);
-            return tmp;
-        }
-
         public static T[] Push<T>(this T[] array, params T[] arguments)
         {
             if (arguments == null && default(T) == null)
@@ -47,6 +35,18 @@ namespace Tests.Collections
                 removeIndex,
                 array.Length - 1 - removeIndex);
             return ret;
+        }
+
+        public static T[] Slice<T>(
+                            this T[] array,
+            int startIndex,
+            int length = -1)
+        {
+            if (length == -1)
+                length = array.Length - startIndex;
+            var tmp = new T[length];
+            Array.Copy(array, startIndex, tmp, 0, length);
+            return tmp;
         }
     }
 }

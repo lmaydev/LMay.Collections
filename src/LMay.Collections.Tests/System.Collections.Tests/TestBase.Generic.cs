@@ -16,24 +16,6 @@ namespace System.Collections.Tests
         #region Helper Methods
 
         /// <summary>
-        /// To be implemented in the concrete collections test classes. Creates an instance of T that
-        /// is dependent only on the seed passed as input and will return the same value on repeated
-        /// calls with the same seed.
-        /// </summary>
-        protected abstract T CreateT(int seed);
-
-        /// <summary>
-        /// The EqualityComparer that can be used in the overriding class when creating test enumerables
-        /// or test collections. Default if not overridden is the default comparator.
-        /// </summary>
-        protected virtual IEqualityComparer<T> GetIEqualityComparer() => EqualityComparer<T>.Default;
-
-        /// <summary>
-        /// The Comparer that can be used in the overriding class when creating test enumerables
-        /// or test collections. Default if not overridden is the default comparator.
-        protected virtual IComparer<T> GetIComparer() => Comparer<T>.Default;
-
-        /// <summary>
         /// MemberData to be passed to tests that take an IEnumerable{T}. This method returns every permutation of
         /// EnumerableType to test on (e.g. HashSet, Queue), and size of set to test with (e.g. 0, 1, etc.).
         /// </summary>
@@ -93,15 +75,20 @@ namespace System.Collections.Tests
                 case EnumerableType.HashSet:
                     Debug.Assert(numberOfDuplicateElements == 0, "Can not create a HashSet with duplicate elements - numberOfDuplicateElements must be zero");
                     return CreateHashSet(enumerableToMatchTo, count, numberOfMatchingElements);
+
                 case EnumerableType.List:
                     return CreateList(enumerableToMatchTo, count, numberOfMatchingElements, numberOfDuplicateElements);
+
                 case EnumerableType.SortedSet:
                     Debug.Assert(numberOfDuplicateElements == 0, "Can not create a SortedSet with duplicate elements - numberOfDuplicateElements must be zero");
                     return CreateSortedSet(enumerableToMatchTo, count, numberOfMatchingElements);
+
                 case EnumerableType.Queue:
                     return CreateQueue(enumerableToMatchTo, count, numberOfMatchingElements, numberOfDuplicateElements);
+
                 case EnumerableType.Lazy:
                     return CreateLazyEnumerable(enumerableToMatchTo, count, numberOfMatchingElements, numberOfDuplicateElements);
+
                 default:
                     Debug.Assert(false, "Check that the 'EnumerableType' Enum returns only types that are special-cased in the CreateEnumerable function within the Iset_Generic_Tests class");
                     return null;
@@ -109,52 +96,51 @@ namespace System.Collections.Tests
         }
 
         /// <summary>
-        /// Helper function to create a Queue fulfilling the given specific parameters. The function will
-        /// create an Queue and then add values
+        /// Helper function to create an HashSet fulfilling the given specific parameters. The function will
+        /// create an HashSet using the Comparer constructor and then add values
         /// to it until it is full. It will begin by adding the desired number of matching,
         /// followed by random (deterministic) elements until the desired count is reached.
         /// </summary>
-        protected IEnumerable<T> CreateQueue(IEnumerable<T> enumerableToMatchTo, int count, int numberOfMatchingElements, int numberOfDuplicateElements)
+        protected IEnumerable<T> CreateHashSet(IEnumerable<T> enumerableToMatchTo, int count, int numberOfMatchingElements)
         {
-            Queue<T> queue = new Queue<T>(count);
+            HashSet<T> set = new HashSet<T>(GetIEqualityComparer());
             int seed = 528;
-            int duplicateAdded = 0;
             List<T> match = null;
 
-            // Enqueue Matching elements
+            // Add Matching elements
             if (enumerableToMatchTo != null)
             {
                 match = enumerableToMatchTo.ToList();
                 for (int i = 0; i < numberOfMatchingElements; i++)
-                {
-                    queue.Enqueue(match[i]);
-                    while (duplicateAdded++ < numberOfDuplicateElements)
-                        queue.Enqueue(match[i]);
-                }
+                    set.Add(match[i]);
             }
 
-            // Enqueue elements to reach the desired count
-            while (queue.Count < count)
+            // Add elements to reach the desired count
+            while (set.Count < count)
             {
-                T toEnqueue = CreateT(seed++);
-                while (queue.Contains(toEnqueue) || (match != null && match.Contains(toEnqueue))) // Don't want any unexpectedly duplicate values
-                    toEnqueue = CreateT(seed++);
-                queue.Enqueue(toEnqueue);
-                while (duplicateAdded++ < numberOfDuplicateElements)
-                    queue.Enqueue(toEnqueue);
+                T toAdd = CreateT(seed++);
+                while (set.Contains(toAdd) || (match != null && match.Contains(toAdd, GetIEqualityComparer()))) // Don't want any unexpectedly duplicate values
+                    toAdd = CreateT(seed++);
+                set.Add(toAdd);
             }
 
             // Validate that the Enumerable fits the guidelines as expected
-            Debug.Assert(queue.Count == count);
+            Debug.Assert(set.Count == count);
             if (match != null)
             {
                 int actualMatchingCount = 0;
                 foreach (T lookingFor in match)
-                    actualMatchingCount += queue.Contains(lookingFor) ? 1 : 0;
+                    actualMatchingCount += set.Contains(lookingFor) ? 1 : 0;
                 Assert.Equal(numberOfMatchingElements, actualMatchingCount);
             }
 
-            return queue;
+            return set;
+        }
+
+        protected IEnumerable<T> CreateLazyEnumerable(IEnumerable<T> enumerableToMatchTo, int count, int numberOfMatchingElements, int numberOfDuplicateElements)
+        {
+            IEnumerable<T> list = CreateList(enumerableToMatchTo, count, numberOfMatchingElements, numberOfDuplicateElements);
+            return list.Select(item => item);
         }
 
         /// <summary>
@@ -207,45 +193,52 @@ namespace System.Collections.Tests
         }
 
         /// <summary>
-        /// Helper function to create an HashSet fulfilling the given specific parameters. The function will
-        /// create an HashSet using the Comparer constructor and then add values
+        /// Helper function to create a Queue fulfilling the given specific parameters. The function will
+        /// create an Queue and then add values
         /// to it until it is full. It will begin by adding the desired number of matching,
         /// followed by random (deterministic) elements until the desired count is reached.
         /// </summary>
-        protected IEnumerable<T> CreateHashSet(IEnumerable<T> enumerableToMatchTo, int count, int numberOfMatchingElements)
+        protected IEnumerable<T> CreateQueue(IEnumerable<T> enumerableToMatchTo, int count, int numberOfMatchingElements, int numberOfDuplicateElements)
         {
-            HashSet<T> set = new HashSet<T>(GetIEqualityComparer());
+            Queue<T> queue = new Queue<T>(count);
             int seed = 528;
+            int duplicateAdded = 0;
             List<T> match = null;
 
-            // Add Matching elements
+            // Enqueue Matching elements
             if (enumerableToMatchTo != null)
             {
                 match = enumerableToMatchTo.ToList();
                 for (int i = 0; i < numberOfMatchingElements; i++)
-                    set.Add(match[i]);
+                {
+                    queue.Enqueue(match[i]);
+                    while (duplicateAdded++ < numberOfDuplicateElements)
+                        queue.Enqueue(match[i]);
+                }
             }
 
-            // Add elements to reach the desired count
-            while (set.Count < count)
+            // Enqueue elements to reach the desired count
+            while (queue.Count < count)
             {
-                T toAdd = CreateT(seed++);
-                while (set.Contains(toAdd) || (match != null && match.Contains(toAdd, GetIEqualityComparer()))) // Don't want any unexpectedly duplicate values
-                    toAdd = CreateT(seed++);
-                set.Add(toAdd);
+                T toEnqueue = CreateT(seed++);
+                while (queue.Contains(toEnqueue) || (match != null && match.Contains(toEnqueue))) // Don't want any unexpectedly duplicate values
+                    toEnqueue = CreateT(seed++);
+                queue.Enqueue(toEnqueue);
+                while (duplicateAdded++ < numberOfDuplicateElements)
+                    queue.Enqueue(toEnqueue);
             }
 
             // Validate that the Enumerable fits the guidelines as expected
-            Debug.Assert(set.Count == count);
+            Debug.Assert(queue.Count == count);
             if (match != null)
             {
                 int actualMatchingCount = 0;
                 foreach (T lookingFor in match)
-                    actualMatchingCount += set.Contains(lookingFor) ? 1 : 0;
+                    actualMatchingCount += queue.Contains(lookingFor) ? 1 : 0;
                 Assert.Equal(numberOfMatchingElements, actualMatchingCount);
             }
 
-            return set;
+            return queue;
         }
 
         /// <summary>
@@ -290,12 +283,24 @@ namespace System.Collections.Tests
             return set;
         }
 
-        protected IEnumerable<T> CreateLazyEnumerable(IEnumerable<T> enumerableToMatchTo, int count, int numberOfMatchingElements, int numberOfDuplicateElements)
-        {
-            IEnumerable<T> list = CreateList(enumerableToMatchTo, count, numberOfMatchingElements, numberOfDuplicateElements);
-            return list.Select(item => item);
-        }
+        /// <summary>
+        /// To be implemented in the concrete collections test classes. Creates an instance of T that
+        /// is dependent only on the seed passed as input and will return the same value on repeated
+        /// calls with the same seed.
+        /// </summary>
+        protected abstract T CreateT(int seed);
 
-        #endregion
+        /// <summary>
+        /// The Comparer that can be used in the overriding class when creating test enumerables
+        /// or test collections. Default if not overridden is the default comparator.
+        protected virtual IComparer<T> GetIComparer() => Comparer<T>.Default;
+
+        /// <summary>
+        /// The EqualityComparer that can be used in the overriding class when creating test enumerables
+        /// or test collections. Default if not overridden is the default comparator.
+        /// </summary>
+        protected virtual IEqualityComparer<T> GetIEqualityComparer() => EqualityComparer<T>.Default;
+
+        #endregion Helper Methods
     }
 }

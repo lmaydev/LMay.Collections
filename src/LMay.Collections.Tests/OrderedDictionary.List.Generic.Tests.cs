@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using AutoFixture;
-using LMay.Collections;
 using System.Collections.Generic;
-using Xunit;
 using System.Collections.Tests;
+using Xunit;
 
 namespace LMay.Collections.Tests
 {

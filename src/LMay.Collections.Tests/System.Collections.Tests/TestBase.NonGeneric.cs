@@ -12,19 +12,6 @@ namespace System.Collections.Tests
     {
         #region Helper Methods
 
-        public static IEnumerable<object[]> ValidCollectionSizes()
-        {
-            yield return new object[] { 0 };
-            yield return new object[] { 1 };
-            yield return new object[] { 75 };
-        }
-
-        public static IEnumerable<object[]> ValidPositiveCollectionSizes()
-        {
-            yield return new object[] { 1 };
-            yield return new object[] { 75 };
-        }
-
         public enum EnumerableType
         {
             HashSet,
@@ -45,6 +32,19 @@ namespace System.Collections.Tests
             Clear = 16
         }
 
-        #endregion
+        public static IEnumerable<object[]> ValidCollectionSizes()
+        {
+            yield return new object[] { 0 };
+            yield return new object[] { 1 };
+            yield return new object[] { 75 };
+        }
+
+        public static IEnumerable<object[]> ValidPositiveCollectionSizes()
+        {
+            yield return new object[] { 1 };
+            yield return new object[] { 75 };
+        }
+
+        #endregion Helper Methods
     }
 }
