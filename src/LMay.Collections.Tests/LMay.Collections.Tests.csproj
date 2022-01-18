@@ -5,6 +5,7 @@
 		<Nullable>disable</Nullable>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<IsPackable>false</IsPackable>
+		<RunAnalyzers>false</RunAnalyzers>
 	</PropertyGroup>
 
 	<ItemGroup>
