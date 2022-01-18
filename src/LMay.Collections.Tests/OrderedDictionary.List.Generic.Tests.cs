@@ -5,8 +5,9 @@ using AutoFixture;
 using LMay.Collections;
 using System.Collections.Generic;
 using Xunit;
+using System.Collections.Tests;
 
-namespace System.Collections.Tests
+namespace LMay.Collections.Tests
 {
     /// <summary>
     /// Contains tests that ensure the correctness of the List class.

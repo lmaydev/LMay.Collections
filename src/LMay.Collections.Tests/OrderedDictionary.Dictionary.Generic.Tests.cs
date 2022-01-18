@@ -3,13 +3,15 @@
 
 using LMay.Collections;
 using LMay.Collections.Tests.Utils;
+using System;
 using System.Collections.Generic;
+using System.Collections.Tests;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Xunit;
 
-namespace System.Collections.Tests
+namespace LMay.Collections.Tests
 {
     /// <summary>
     /// Contains tests that ensure the correctness of the Dictionary class.
@@ -114,11 +116,11 @@ namespace System.Collections.Tests
         {
             if (DefaultValueAllowed)
             {
-                var dictionary = (GenericIDictionaryFactory(count));
-                TKey missingKey = default(TKey);
+                var dictionary = GenericIDictionaryFactory(count);
+                TKey missingKey = default;
                 TValue value;
 
-                dictionary.TryAdd(missingKey, default(TValue));
+                dictionary.TryAdd(missingKey, default);
                 Assert.True(dictionary.Remove(missingKey, out value));
             }
         }
@@ -132,17 +134,17 @@ namespace System.Collections.Tests
 
             if (DefaultValueAllowed)
             {
-                TKey missingKey = default(TKey);
+                TKey missingKey = default;
                 while (dictionary.ContainsKey(missingKey))
                     dictionary.Remove(missingKey);
                 Assert.False(dictionary.Remove(missingKey, out outValue));
-                Assert.Equal(default(TValue), outValue);
+                Assert.Equal(default, outValue);
             }
             else
             {
                 TValue initValue = CreateTValue(count);
                 outValue = initValue;
-                Assert.Throws<ArgumentNullException>(() => dictionary.Remove(default(TKey), out outValue));
+                Assert.Throws<ArgumentNullException>(() => dictionary.Remove(default, out outValue));
                 Assert.Equal(initValue, outValue);
             }
         }
@@ -173,7 +175,7 @@ namespace System.Collections.Tests
 
             Assert.False(dictionary.Remove(missingKey, out value));
             Assert.Equal(count, dictionary.Count);
-            Assert.Equal(default(TValue), value);
+            Assert.Equal(default, value);
         }
 
         #endregion Remove(TKey)

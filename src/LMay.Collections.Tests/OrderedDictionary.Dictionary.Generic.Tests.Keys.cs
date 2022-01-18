@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using LMay.Collections;
+using System;
 using System.Collections.Generic;
+using System.Collections.Tests;
 using System.Diagnostics;
 using Xunit;
 
-namespace System.Collections.Tests
+namespace LMay.Collections.Tests
 {
     public class OrderedDictionary_Dictionary_Generic_Tests_Keys : ICollection_Generic_Tests<string>
     {

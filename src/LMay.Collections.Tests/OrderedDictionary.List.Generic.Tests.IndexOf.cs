@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
+using System.Collections.Tests;
 using System.Linq;
 using Xunit;
 
-namespace System.Collections.Tests
+namespace LMay.Collections.Tests
 {
     /// <summary>
     /// Contains tests that ensure the correctness of the List class.
@@ -40,8 +42,8 @@ namespace System.Collections.Tests
         {
             switch (methodType)
             {
-                case (IndexOfMethod.IndexOf_T):
-                    return ((IList<KeyValuePair<TKey, TValue>> list, KeyValuePair<TKey, TValue> value) => { return list.IndexOf(value); });
+                case IndexOfMethod.IndexOf_T:
+                    return (list, value) => { return list.IndexOf(value); };
                 default:
                     throw new Exception("Invalid IndexOfMethod");
             }
