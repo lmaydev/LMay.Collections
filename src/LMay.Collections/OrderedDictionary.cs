@@ -12,7 +12,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
     {
     }
 
-    public OrderedDictionary(IEqualityComparer<TKey> comparer) : this(0, comparer)
+    public OrderedDictionary(IEqualityComparer<TKey>? comparer) : this(0, comparer)
     {
     }
 
@@ -192,7 +192,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
         public void CopyTo(TKey[] array, int arrayIndex)
         {
-            if (arrayIndex < 0 || arrayIndex >= array.Length)
+            if (arrayIndex < 0 || arrayIndex > array.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index was out of range. Must be non-negative and less than the size of the collection.");
             }
@@ -267,12 +267,12 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue> 
 
         public void CopyTo(TValue[] array, int arrayIndex)
         {
-            if (arrayIndex < 0 || arrayIndex >= array.Length)
+            if (arrayIndex < 0 || arrayIndex > array.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index was out of range. Must be non-negative and less than the size of the collection.");
             }
 
-            if (arrayIndex + Count >= array.Length)
+            if (arrayIndex + Count > array.Length)
             {
                 throw new ArgumentException("Destination array was not long enough. Check the destination index, length, and the array's lower bounds.", nameof(array));
             }

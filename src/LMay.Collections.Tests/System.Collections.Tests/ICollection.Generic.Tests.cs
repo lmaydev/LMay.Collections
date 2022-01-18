@@ -533,14 +533,6 @@ namespace System.Collections.Tests
             }
         }
 
-        [Theory]
-        [MemberData(nameof(ValidCollectionSizes))]
-        public void ICollection_Generic_CopyTo_NullArray_ThrowsArgumentNullException(int count)
-        {
-            ICollection<T> collection = GenericICollectionFactory(count);
-            Assert.Throws<ArgumentNullException>(() => collection.CopyTo(null, 0));
-        }
-
         #endregion CopyTo
 
         #region Remove
@@ -585,7 +577,7 @@ namespace System.Collections.Tests
 
         [Theory]
         [MemberData(nameof(ValidCollectionSizes))]
-        public void ICollection_Generic_Remove_DefaultValueWhenNotAllowed(int count)
+        public virtual void ICollection_Generic_Remove_DefaultValueWhenNotAllowed(int count)
         {
             if (!DefaultValueAllowed && !IsReadOnly && !AddRemoveClear_ThrowsNotSupported)
             {
