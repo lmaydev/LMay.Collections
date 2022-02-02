@@ -2,8 +2,7 @@
 
 namespace System.Collections.Generic;
 
-public abstract class KeyedList<TKey, TValue> : IList<TValue>, IReadOnlyDictionary<TKey, TValue>
-    where TKey : notnull
+public abstract class KeyedList<TKey, TValue> : IKeyedList<TKey, TValue> where TKey : notnull
 {
     private readonly OrderedDictionary<TKey, TValue> dictionary;
 
@@ -44,8 +43,6 @@ public abstract class KeyedList<TKey, TValue> : IList<TValue>, IReadOnlyDictiona
 
     public IEnumerable<TKey> Keys => dictionary.Keys;
 
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => dictionary.Values;
-
     public TValue this[TKey key] => dictionary[key];
 
     public TValue this[int index]
@@ -77,8 +74,6 @@ public abstract class KeyedList<TKey, TValue> : IList<TValue>, IReadOnlyDictiona
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => dictionary.TryGetValue(key, out value);
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() => dictionary.GetEnumerator();
 
     protected abstract TKey GetKeyForItem(TValue item);
 
