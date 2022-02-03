@@ -2,7 +2,7 @@
 
 namespace System.Collections.Generic;
 
-public abstract class KeyedList<TKey, TValue> : IKeyedList<TKey, TValue> where TKey : notnull
+public abstract class KeyedList<TKey, TValue> : IList<TValue>, IKeyedCollection<TKey, TValue> where TKey : notnull
 {
     private readonly OrderedDictionary<TKey, TValue> dictionary;
 
@@ -70,6 +70,20 @@ public abstract class KeyedList<TKey, TValue> : IKeyedList<TKey, TValue> where T
     public bool Remove(TValue item) => dictionary.Remove(GetPair(item));
 
     public void RemoveAt(int index) => dictionary.RemoveAt(index);
+
+    public bool RemoveByKey(TKey key)
+    {
+        if (!ContainsKey(key))
+        {
+            return false;
+        }
+
+        var index = IndexOf(dictionary[key]);
+
+        RemoveAt(index);
+
+        return true;
+    }
 
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => dictionary.TryGetValue(key, out value);
 
