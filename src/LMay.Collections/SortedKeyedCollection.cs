@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace LMay.Collections
 {
-    public abstract class SortedKeyedCollection<TKey, TValue> : ICollection<TValue>, IKeyedCollection<TKey, TValue>
+    public abstract class SortedKeyedCollection<TKey, TValue> : IKeyedCollection<TKey, TValue>
         where TKey : notnull
     {
         private readonly SortedDictionary<TKey, TValue> dictionary;
@@ -18,14 +18,18 @@ namespace LMay.Collections
             dictionary = new(comparer);
         }
 
-        protected SortedKeyedCollection(IDictionary<TKey, TValue> dictionary)
+        protected SortedKeyedCollection(IEnumerable<TValue> collection) : this(collection, null)
         {
-            this.dictionary = new(dictionary);
         }
 
-        protected SortedKeyedCollection(IDictionary<TKey, TValue> dictionary, IComparer<TKey>? comparer)
+        protected SortedKeyedCollection(IEnumerable<TValue> collection, IComparer<TKey>? comparer)
         {
-            this.dictionary = new(dictionary, comparer);
+            this.dictionary = new(comparer);
+
+            foreach (var item in collection)
+            {
+                Add(item);
+            }
         }
 
         public int Count => dictionary.Count;

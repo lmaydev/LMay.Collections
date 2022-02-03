@@ -12,11 +12,11 @@
         {
         }
 
-        public SortedKeyedItemCollection(IDictionary<TKey, TValue> dictionary) : base(dictionary)
+        public SortedKeyedItemCollection(IEnumerable<TValue> collection) : base(collection)
         {
         }
 
-        public SortedKeyedItemCollection(IDictionary<TKey, TValue> dictionary, IComparer<TKey>? comparer) : base(dictionary, comparer)
+        public SortedKeyedItemCollection(IEnumerable<TValue> collection, IComparer<TKey>? comparer) : base(collection, comparer)
         {
         }
 
