@@ -40,9 +40,9 @@ namespace LMay.Collections
 
         public TValue this[TKey key] => dictionary[key];
 
-        public void Add(TValue item) => dictionary.Add(GetKeyForItem(item), item);
+        public virtual void Add(TValue item) => dictionary.Add(GetKeyForItem(item), item);
 
-        public void Clear() => dictionary.Clear();
+        public virtual void Clear() => dictionary.Clear();
 
         public bool Contains(TValue item) => dictionary.ContainsValue(item);
 
@@ -52,9 +52,9 @@ namespace LMay.Collections
 
         public IEnumerator<TValue> GetEnumerator() => dictionary.Values.GetEnumerator();
 
-        public bool Remove(TValue item) => dictionary.Remove(GetKeyForItem(item));
+        public virtual bool Remove(TValue item) => dictionary.Remove(GetKeyForItem(item));
 
-        public bool RemoveByKey(TKey key) => dictionary.Remove(key);
+        public virtual bool RemoveByKey(TKey key) => dictionary.Remove(key);
 
         public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => dictionary.TryGetValue(key, out value);
 

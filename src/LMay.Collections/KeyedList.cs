@@ -45,15 +45,15 @@ public abstract class KeyedList<TKey, TValue> : IList<TValue>, IKeyedCollection<
 
     public TValue this[TKey key] => dictionary[key];
 
-    public TValue this[int index]
+    public virtual TValue this[int index]
     {
         get => dictionary[index].Value;
         set => dictionary[index] = GetPair(value);
     }
 
-    public void Add(TValue item) => dictionary.Add(GetPair(item));
+    public virtual void Add(TValue item) => dictionary.Add(GetPair(item));
 
-    public void Clear() => dictionary.Clear();
+    public virtual void Clear() => dictionary.Clear();
 
     public bool Contains(TValue item) => dictionary.Contains(GetPair(item));
 
@@ -65,13 +65,13 @@ public abstract class KeyedList<TKey, TValue> : IList<TValue>, IKeyedCollection<
 
     public int IndexOf(TValue item) => dictionary.IndexOf(GetPair(item));
 
-    public void Insert(int index, TValue item) => dictionary.Insert(index, GetPair(item));
+    public virtual void Insert(int index, TValue item) => dictionary.Insert(index, GetPair(item));
 
-    public bool Remove(TValue item) => dictionary.Remove(GetPair(item));
+    public virtual bool Remove(TValue item) => dictionary.Remove(GetPair(item));
 
-    public void RemoveAt(int index) => dictionary.RemoveAt(index);
+    public virtual void RemoveAt(int index) => dictionary.RemoveAt(index);
 
-    public bool RemoveByKey(TKey key)
+    public virtual bool RemoveByKey(TKey key)
     {
         if (!ContainsKey(key))
         {

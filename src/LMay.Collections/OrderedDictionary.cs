@@ -46,7 +46,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
 
     IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
 
-    public KeyValuePair<TKey, TValue> this[int index]
+    public virtual KeyValuePair<TKey, TValue> this[int index]
     {
         get => list[index];
 
@@ -57,7 +57,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
         }
     }
 
-    public TValue this[TKey key]
+    public virtual TValue this[TKey key]
     {
         get => dictionary[key];
 
@@ -74,15 +74,15 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
         }
     }
 
-    public void Add(TKey key, TValue value)
+    public virtual void Add(TKey key, TValue value)
     {
         dictionary.Add(key, value);
         list.Add(new(key, value));
     }
 
-    public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
+    public virtual void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
 
-    public void Clear()
+    public virtual void Clear()
     {
         list.Clear();
         dictionary.Clear();
@@ -114,9 +114,9 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
         return -1;
     }
 
-    public void Insert(int index, TKey key, TValue value) => Insert(index, new(key, value));
+    public virtual void Insert(int index, TKey key, TValue value) => Insert(index, new(key, value));
 
-    public void Insert(int index, KeyValuePair<TKey, TValue> item)
+    public virtual void Insert(int index, KeyValuePair<TKey, TValue> item)
     {
         if (ContainsKey(item.Key))
         {
@@ -127,7 +127,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
         dictionary.Add(item.Key, item.Value);
     }
 
-    public bool Remove(TKey key)
+    public virtual bool Remove(TKey key)
     {
         if (!ContainsKey(key))
         {
@@ -147,7 +147,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
         return true;
     }
 
-    public bool Remove(KeyValuePair<TKey, TValue> item)
+    public virtual bool Remove(KeyValuePair<TKey, TValue> item)
     {
         if (Contains(item))
         {
@@ -157,7 +157,7 @@ public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>,
         return false;
     }
 
-    public void RemoveAt(int index)
+    public virtual void RemoveAt(int index)
     {
         var item = list[index];
 
