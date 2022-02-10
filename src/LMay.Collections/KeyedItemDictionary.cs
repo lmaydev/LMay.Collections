@@ -3,26 +3,27 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace LMay.Collections;
 
-public abstract class SortedKeyedCollection<TKey, TValue> : IKeyedCollection<TKey, TValue>
+public class KeyedItemDictionary<TKey, TValue> : IKeyedCollection<TKey, TValue>
     where TKey : notnull
+    where TValue : IKeyedItem<TKey>
 {
-    private readonly SortedDictionary<TKey, TValue> dictionary;
+    private readonly Dictionary<TKey, TValue> dictionary;
 
-    protected SortedKeyedCollection()
+    protected KeyedItemDictionary()
     {
         dictionary = new();
     }
 
-    protected SortedKeyedCollection(IComparer<TKey>? comparer)
+    protected KeyedItemDictionary(IEqualityComparer<TKey>? comparer)
     {
         dictionary = new(comparer);
     }
 
-    protected SortedKeyedCollection(IEnumerable<TValue> collection) : this(collection, null)
+    protected KeyedItemDictionary(IEnumerable<TValue> collection) : this(collection, null)
     {
     }
 
-    protected SortedKeyedCollection(IEnumerable<TValue> collection, IComparer<TKey>? comparer)
+    protected KeyedItemDictionary(IEnumerable<TValue> collection, IEqualityComparer<TKey>? comparer)
     {
         this.dictionary = new(comparer);
 
@@ -62,5 +63,5 @@ public abstract class SortedKeyedCollection<TKey, TValue> : IKeyedCollection<TKe
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    protected abstract TKey GetKeyForItem(TValue item);
+    protected TKey GetKeyForItem(TValue item) => item.Key;
 }

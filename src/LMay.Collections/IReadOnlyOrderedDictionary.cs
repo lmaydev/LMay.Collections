@@ -1,4 +1,4 @@
-﻿namespace System.Collections.Generic;
+﻿namespace LMay.Collections;
 
 public interface IReadOnlyOrderedDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
