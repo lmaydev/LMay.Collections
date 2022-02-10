@@ -1,6 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
-namespace System.Collections.Generic;
+namespace LMay.Collections;
 
 public class OrderedDictionary<TKey, TValue> : IOrderedDictionary<TKey, TValue>, IReadOnlyOrderedDictionary<TKey, TValue>
     where TKey : notnull

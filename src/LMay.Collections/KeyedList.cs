@@ -1,6 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
-namespace System.Collections.Generic;
+namespace LMay.Collections;
 
 public abstract class KeyedList<TKey, TValue> : IList<TValue>, IKeyedCollection<TKey, TValue> where TKey : notnull
 {

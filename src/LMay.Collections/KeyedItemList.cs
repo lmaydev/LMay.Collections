@@ -1,4 +1,4 @@
-﻿namespace System.Collections.Generic;
+﻿namespace LMay.Collections;
 
 public class KeyedItemList<TKey, TValue> : KeyedList<TKey, TValue>
     where TKey : notnull

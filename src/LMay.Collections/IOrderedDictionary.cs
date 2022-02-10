@@ -1,4 +1,4 @@
-﻿namespace System.Collections.Generic;
+﻿namespace LMay.Collections;
 
 public interface IOrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IList<KeyValuePair<TKey, TValue>>
     where TKey : notnull

@@ -1,4 +1,4 @@
-﻿namespace System.Collections.Generic;
+﻿namespace LMay.Collections;
 
 /// <summary>
 /// Represents an item that exposes it's own key through a property.
