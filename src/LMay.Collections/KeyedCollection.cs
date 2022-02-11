@@ -6,11 +6,19 @@ namespace LMay.Collections;
 public abstract class KeyedCollection<TKey, TValue> : IKeyedCollection<TKey, TValue>
     where TKey : notnull
 {
-    private readonly IDictionary<TKey, TValue> dictionary;
+    protected readonly IDictionary<TKey, TValue> dictionary;
 
     protected KeyedCollection(IDictionary<TKey, TValue> backingDictionary)
     {
         dictionary = backingDictionary;
+    }
+
+    protected KeyedCollection(IDictionary<TKey, TValue> backingDictionary, IEnumerable<TValue> collection) : this(backingDictionary)
+    {
+        foreach (var item in collection)
+        {
+            Add(item);
+        }
     }
 
     public int Count => dictionary.Count;
@@ -44,4 +52,6 @@ public abstract class KeyedCollection<TKey, TValue> : IKeyedCollection<TKey, TVa
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     protected abstract TKey GetKeyForItem(TValue item);
+
+    protected KeyValuePair<TKey, TValue> GetPair(TValue item) => new(GetKeyForItem(item), item);
 }

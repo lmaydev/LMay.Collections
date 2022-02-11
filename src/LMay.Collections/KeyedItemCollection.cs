@@ -8,11 +8,7 @@ public class KeyedItemCollection<TKey, TValue> : KeyedCollection<TKey, TValue>
     {
     }
 
-    public KeyedItemCollection(IDictionary<TKey, TValue> dictionary) : base(new Dictionary<TKey, TValue>(dictionary))
-    {
-    }
-
-    public KeyedItemCollection(IEnumerable<KeyValuePair<TKey, TValue>> collection) : base(new Dictionary<TKey, TValue>(collection))
+    public KeyedItemCollection(IEnumerable<TValue> collection) : this(collection, null)
     {
     }
 
@@ -24,11 +20,8 @@ public class KeyedItemCollection<TKey, TValue> : KeyedCollection<TKey, TValue>
     {
     }
 
-    public KeyedItemCollection(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey>? comparer) : base(new Dictionary<TKey, TValue>(dictionary, comparer))
-    {
-    }
-
-    public KeyedItemCollection(IEnumerable<KeyValuePair<TKey, TValue>> collection, IEqualityComparer<TKey>? comparer) : base(new Dictionary<TKey, TValue>(collection, comparer))
+    public KeyedItemCollection(IEnumerable<TValue> collection, IEqualityComparer<TKey>? comparer)
+        : base(new Dictionary<TKey, TValue>(comparer), collection)
     {
     }
 

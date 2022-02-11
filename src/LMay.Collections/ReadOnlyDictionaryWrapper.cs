@@ -3,10 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace LMay.Collections
 {
-    internal struct ReadOnlyDictionaryWrapper<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
+    public struct ReadOnlyDictionaryWrapper<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
         where TKey : notnull
     {
-        private IDictionary<TKey, TValue> dictionary;
+        private readonly IDictionary<TKey, TValue> dictionary;
 
         public ReadOnlyDictionaryWrapper(IDictionary<TKey, TValue> dictionary)
         {

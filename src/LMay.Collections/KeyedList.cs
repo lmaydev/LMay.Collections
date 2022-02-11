@@ -1,12 +1,7 @@
-﻿using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+﻿namespace LMay.Collections;
 
-namespace LMay.Collections;
-
-public abstract class KeyedList<TKey, TValue> : IList<TValue>, IKeyedCollection<TKey, TValue> where TKey : notnull
+public abstract class KeyedList<TKey, TValue> : KeyedCollection<TKey, TValue>, IList<TValue> where TKey : notnull
 {
-    private readonly OrderedDictionary<TKey, TValue> dictionary;
-
     protected KeyedList() : this(0)
     {
     }
@@ -19,78 +14,31 @@ public abstract class KeyedList<TKey, TValue> : IList<TValue>, IKeyedCollection<
     {
     }
 
-    protected KeyedList(int capacity, IEqualityComparer<TKey>? comparer)
+    protected KeyedList(int capacity, IEqualityComparer<TKey>? comparer) :
+        base(new OrderedDictionary<TKey, TValue>(capacity, comparer))
     {
-        dictionary = new(capacity, comparer);
     }
 
     protected KeyedList(IEnumerable<TValue> collection) : this(collection, null)
     {
     }
 
-    protected KeyedList(IEnumerable<TValue> collection, IEqualityComparer<TKey>? comparer)
+    protected KeyedList(IEnumerable<TValue> collection, IEqualityComparer<TKey>? comparer) :
+        base(new OrderedDictionary<TKey, TValue>(comparer), collection)
     {
-        dictionary = new(comparer);
-
-        foreach (var item in collection)
-        {
-            dictionary[GetKeyForItem(item)] = item;
-        }
     }
 
-    public int Count => dictionary.Count;
-
-    public bool IsReadOnly => false;
-
-    public IEnumerable<TKey> Keys => dictionary.Keys;
-
-    public TValue this[TKey key] => dictionary[key];
+    protected OrderedDictionary<TKey, TValue> OrderedDictionary => (OrderedDictionary<TKey, TValue>)dictionary;
 
     public virtual TValue this[int index]
     {
-        get => dictionary[index].Value;
-        set => dictionary[index] = GetPair(value);
+        get => OrderedDictionary[index].Value;
+        set => OrderedDictionary[index] = GetPair(value);
     }
 
-    public virtual void Add(TValue item) => dictionary.Add(GetPair(item));
+    public int IndexOf(TValue item) => OrderedDictionary.IndexOf(GetPair(item));
 
-    public virtual void Clear() => dictionary.Clear();
+    public virtual void Insert(int index, TValue item) => OrderedDictionary.Insert(index, GetPair(item));
 
-    public bool Contains(TValue item) => dictionary.Contains(GetPair(item));
-
-    public bool ContainsKey(TKey key) => dictionary.ContainsKey(key);
-
-    public void CopyTo(TValue[] array, int arrayIndex) => dictionary.Values.CopyTo(array, arrayIndex);
-
-    public IEnumerator<TValue> GetEnumerator() => dictionary.Values.GetEnumerator();
-
-    public int IndexOf(TValue item) => dictionary.IndexOf(GetPair(item));
-
-    public virtual void Insert(int index, TValue item) => dictionary.Insert(index, GetPair(item));
-
-    public virtual bool Remove(TValue item) => dictionary.Remove(GetPair(item));
-
-    public virtual void RemoveAt(int index) => dictionary.RemoveAt(index);
-
-    public virtual bool RemoveByKey(TKey key)
-    {
-        if (!ContainsKey(key))
-        {
-            return false;
-        }
-
-        var index = IndexOf(dictionary[key]);
-
-        RemoveAt(index);
-
-        return true;
-    }
-
-    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => dictionary.TryGetValue(key, out value);
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    protected abstract TKey GetKeyForItem(TValue item);
-
-    protected KeyValuePair<TKey, TValue> GetPair(TValue item) => new(GetKeyForItem(item), item);
+    public virtual void RemoveAt(int index) => OrderedDictionary.RemoveAt(index);
 }
