@@ -1,22 +1,23 @@
 ﻿namespace LMay.Collections;
 
-public class SortedKeyedItemCollection<TKey, TValue> : SortedKeyedCollection<TKey, TValue>
+public class SortedKeyedItemCollection<TKey, TValue> : KeyedCollection<TKey, TValue>
     where TKey : notnull
     where TValue : notnull, IKeyedItem<TKey>
 {
-    public SortedKeyedItemCollection()
+    public SortedKeyedItemCollection() : base(new SortedDictionary<TKey, TValue>())
     {
     }
 
-    public SortedKeyedItemCollection(IComparer<TKey>? comparer) : base(comparer)
+    public SortedKeyedItemCollection(IComparer<TKey>? comparer) : base(new SortedDictionary<TKey, TValue>(comparer))
     {
     }
 
-    public SortedKeyedItemCollection(IEnumerable<TValue> collection) : base(collection)
+    public SortedKeyedItemCollection(IDictionary<TKey, TValue> dictionary) : base(new SortedDictionary<TKey, TValue>(dictionary))
     {
     }
 
-    public SortedKeyedItemCollection(IEnumerable<TValue> collection, IComparer<TKey>? comparer) : base(collection, comparer)
+    public SortedKeyedItemCollection(IDictionary<TKey, TValue> dictionary, IComparer<TKey>? comparer)
+        : base(new SortedDictionary<TKey, TValue>(dictionary, comparer))
     {
     }
 

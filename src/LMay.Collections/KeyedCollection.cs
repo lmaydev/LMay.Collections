@@ -3,33 +3,14 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace LMay.Collections;
 
-public abstract class SortedKeyedCollection<TKey, TValue> : IKeyedCollection<TKey, TValue>
+public abstract class KeyedCollection<TKey, TValue> : IKeyedCollection<TKey, TValue>
     where TKey : notnull
 {
-    private readonly SortedDictionary<TKey, TValue> dictionary;
+    private readonly IDictionary<TKey, TValue> dictionary;
 
-    protected SortedKeyedCollection()
+    protected KeyedCollection(IDictionary<TKey, TValue> backingDictionary)
     {
-        dictionary = new();
-    }
-
-    protected SortedKeyedCollection(IComparer<TKey>? comparer)
-    {
-        dictionary = new(comparer);
-    }
-
-    protected SortedKeyedCollection(IEnumerable<TValue> collection) : this(collection, null)
-    {
-    }
-
-    protected SortedKeyedCollection(IEnumerable<TValue> collection, IComparer<TKey>? comparer)
-    {
-        this.dictionary = new(comparer);
-
-        foreach (var item in collection)
-        {
-            Add(item);
-        }
+        dictionary = backingDictionary;
     }
 
     public int Count => dictionary.Count;
@@ -42,11 +23,11 @@ public abstract class SortedKeyedCollection<TKey, TValue> : IKeyedCollection<TKe
 
     public virtual void Add(TValue item) => dictionary.Add(GetKeyForItem(item), item);
 
-    public virtual IReadOnlyDictionary<TKey, TValue> AsReadOnlyDictionary() => dictionary;
+    public virtual IReadOnlyDictionary<TKey, TValue> AsReadOnlyDictionary() => new ReadOnlyDictionaryWrapper<TKey, TValue>(dictionary);
 
     public virtual void Clear() => dictionary.Clear();
 
-    public bool Contains(TValue item) => dictionary.ContainsValue(item);
+    public bool Contains(TValue item) => dictionary.Values.Contains(item);
 
     public bool ContainsKey(TKey key) => dictionary.ContainsKey(key);
 
